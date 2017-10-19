@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified">
+    <xs:annotation>
+        <xs:documentation>
+            <![CDATA[
+            0.1, 16.02.2017, Paul K. Korir:
+            - added optional element image_id with elements to hold image IDs for top, front and right images
+            ]]>
+        </xs:documentation>
+    </xs:annotation>
+    <!-- BEGIN MAIN STRUCTURE -->
+    <xs:element name="ROI">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="image_ids" minOccurs="0">
+                    <xs:complexType>
+                        <xs:sequence>
+                            <xs:element name="top" type="xs:positiveInteger"/>
+                            <xs:element name="front" type="xs:positiveInteger"/>
+                            <xs:element name="right" type="xs:positiveInteger"/>
+                        </xs:sequence>
+                    </xs:complexType>
+                </xs:element>
+                <xs:element name="segment" type="segmentType" minOccurs="0" maxOccurs="unbounded"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+
+    <!-- END MAIN STRUCTURE -->
+
+    <!-- REFERENCED TYPES -->
+    <!-- segmentType -->
+    <xs:complexType name="segmentType">
+        <xs:sequence>
+            <xs:element name="colour" type="rgbaType" minOccurs="0" maxOccurs="1"/>
+            <xs:element name="xContours" type="orientedContourType"/>
+            <xs:element name="yContours" type="orientedContourType"/>
+            <xs:element name="zContours" type="orientedContourType"/>
+        </xs:sequence>
+        <xs:attribute name="id" type="xs:nonNegativeInteger"/>
+    </xs:complexType>
+
+    <!-- rgbaType -->
+    <xs:complexType name="rgbaType">
+        <xs:sequence>
+            <xs:element name="red" type="normalisedFloatType"/>
+            <xs:element name="green" type="normalisedFloatType"/>
+            <xs:element name="blue" type="normalisedFloatType"/>
+            <xs:element name="alpha" type="normalisedFloatType"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- normalisedFloatType -->
+    <xs:simpleType name="normalisedFloatType">
+        <xs:restriction base="xs:float">
+            <xs:minInclusive value="0"/>
+            <xs:maxInclusive value="1"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- orientedContourType -->
+    <xs:complexType name="orientedContourType">
+        <xs:sequence>
+            <xs:element name="contour" type="contourType" minOccurs="0" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- contourType -->
+    <xs:complexType name="contourType">
+        <xs:sequence>
+            <xs:element name="p" type="pointType" minOccurs="0" maxOccurs="unbounded"/>
+        </xs:sequence>
+        <xs:attribute name="id" type="xs:nonNegativeInteger"/>
+    </xs:complexType>
+
+    <!-- pointType -->
+    <xs:complexType name="pointType">
+        <xs:attribute name="id" type="xs:nonNegativeInteger"/>
+        <xs:attribute name="x" type="xs:float"/>
+        <xs:attribute name="y" type="xs:float"/>
+        <xs:attribute name="z" type="xs:float"/>
+    </xs:complexType>
+
+</xs:schema>
