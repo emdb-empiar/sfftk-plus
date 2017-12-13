@@ -12,15 +12,8 @@ from getpass import getpass
 import re
 import os
 import sys
-
-import h5py
-
-from .core.configs import get_configs
 from sfftk.core.print_tools import print_date, print_static
-
-
-# global dictionary containing persistent configs
-configs = get_configs()
+from sfftk.sff import _module_test_runner, _testcase_test_runner, _discover_test_runner 
 
 
 __author__  = "Paul K. Korir, PhD"
@@ -29,45 +22,45 @@ __date__    = "2017-02-17"
 
 
 # auxilliary function
-def get_credentials(args, configs):
-    """Get credentials to use for OMERO connections from either args or configs
-    
-    :param args: command line argments
-    :type args: ``argparse.Namespace``
-    :param dict configs: dictionary of configurations read from text config file
-    :return str user: username
-    :return str password: password
-    :return str host: hostname
-    :return str port: port string
-    """
-    cw = configs['CONNECT_WITH']
-    # user
-    if 'OMERO_{}_USER'.format(cw) in configs:
-        user = configs['OMERO_{}_USER'.format(cw)]
-    elif args.user:
-        user = args.user
-    
-    # password
-    if 'OMERO_{}_PASSWORD'.format(cw) in configs:
-        password = configs['OMERO_{}_PASSWORD'.format(cw)]
-    elif args.password:
-        password = args.password
-    else:
-        password = getpass()
-   
-    # host
-    if 'OMERO_{}_HOST'.format(cw) in configs:
-        host = configs['OMERO_{}_HOST'.format(cw)]
-    elif args.host:
-        host = args.host
-       
-    # port
-    if 'OMERO_{}_PORT'.format(cw) in configs:
-        port = configs['OMERO_{}_PORT'.format(cw)]
-    elif args.port:
-        port = args.port
-    
-    return user, password, host, port
+# def get_credentials(args, configs):
+#     """Get credentials to use for OMERO connections from either args or configs
+#     
+#     :param args: command line argments
+#     :type args: ``argparse.Namespace``
+#     :param dict configs: dictionary of configurations read from text config file
+#     :return str user: username
+#     :return str password: password
+#     :return str host: hostname
+#     :return str port: port string
+#     """
+#     cw = configs['CONNECT_WITH']
+#     # user
+#     if 'OMERO_{}_USER'.format(cw) in configs:
+#         user = configs['OMERO_{}_USER'.format(cw)]
+#     elif args.user:
+#         user = args.user
+#     
+#     # password
+#     if 'OMERO_{}_PASSWORD'.format(cw) in configs:
+#         password = configs['OMERO_{}_PASSWORD'.format(cw)]
+#     elif args.password:
+#         password = args.password
+#     else:
+#         password = getpass()
+#    
+#     # host
+#     if 'OMERO_{}_HOST'.format(cw) in configs:
+#         host = configs['OMERO_{}_HOST'.format(cw)]
+#     elif args.host:
+#         host = args.host
+#        
+#     # port
+#     if 'OMERO_{}_PORT'.format(cw) in configs:
+#         port = configs['OMERO_{}_PORT'.format(cw)]
+#     elif args.port:
+#         port = args.port
+#     
+#     return user, password, host, port
 
 def get_image_ids(roi_seg, args):
     """Get the image ids to which ROIs will be attached
@@ -95,13 +88,31 @@ def get_image_ids(roi_seg, args):
         raise ValueError("No image identifiers specified. Aborting...")
     return image_ids
 
-def handle_list(args):
+def handle_list(args, configs):
+    """
+    Handle `list` subcommand
+    
+    :param args: parsed arguments
+    :type args: ``argparse.Namespace``
+    :param configs: configurations object
+    :type config: ``sfftk.core.configs.Congif``
+    :return int status: status
+    """
     from .omero.handlers import OMEROConnection
-    with OMEROConnection(args) as connection:
+    with OMEROConnection(args, configs) as connection:
         connection.list()
     return 0
 
-def handle_attachroi(args):
+def handle_attachroi(args, configs):
+    """
+    Handle `attachroi` subcommand
+    
+    :param args: parsed arguments
+    :type args: ``argparse.Namespace``
+    :param configs: configurations object
+    :type config: ``sfftk.core.configs.Congif``
+    :return int status: status
+    """
     from .formats.roi import ROISegmentation
     from .omero.handlers import OMEROConnection
     
@@ -120,7 +131,7 @@ def handle_attachroi(args):
     #    check image exists
     #    create and load roi object
     #    attach rois
-    with OMEROConnection(args) as connection:
+    with OMEROConnection(args, configs) as connection:
         for orientation in roi_seg.oriented_segments:
             # get the image_id for this orientation
             image_id = image_ids[orientation]
@@ -150,9 +161,18 @@ def handle_attachroi(args):
                 continue # non-fatal
     return 0
 
-def handle_delroi(args):
+def handle_delroi(args, configs):
+    """
+    Handle `delroi` subcommand
+    
+    :param args: parsed arguments
+    :type args: ``argparse.Namespace``
+    :param configs: configurations object
+    :type config: ``sfftk.core.configs.Congif``
+    :return int status: status
+    """
     from .omero.handlers import OMEROConnection
-    with OMEROConnection(args) as connection:
+    with OMEROConnection(args, configs) as connection:
         if args.roi_id:
             if args.verbose:
                 print_date("Deleting ROI %s" % args.roi_id)
@@ -170,12 +190,15 @@ def handle_delroi(args):
             print_date("Please specify an ROI ID. Search using 'sffp list --rois [--image-id <image_id>]'")
     return 0
 
-def handle_createroi(args):
+def handle_createroi(args, configs):
     """
     Handle `createroi` subcommand
     
     :param args: parsed arguments
-    :type args: `argparse.Namespace`
+    :type args: ``argparse.Namespace``
+    :param configs: configurations object
+    :type config: ``sfftk.core.configs.Congif``
+    :return int status: status
     """
     import schema
     # convert an EMDB-SFF file to an ROI file
@@ -185,21 +208,24 @@ def handle_createroi(args):
         print_date("Unsupported file type: {}".format(args.sff_file))
         return 1  
     # convert segments to VTK meshes
-    vtk_seg = sff_seg.as_vtk(args)
+    vtk_seg = sff_seg.as_vtk(args, configs)
     # slice to get contours
     vtk_seg.slice()
     # convert to ROI using sfftkplus.schema.roi
-    roi_seg = vtk_seg.as_roi()
+    roi_seg = vtk_seg.as_roi(configs)
     # export to file
     roi_seg.export(args.output)
     return 0
 
-def handle_view3d(args):
+def handle_view3d(args, configs):
     """
     Handle `view3d` subcommand
     
     :param args: parsed arguments
-    :type args: `argparse.Namespace`
+    :type args: ``argparse.Namespace``
+    :param configs: configurations object
+    :type config: ``sfftk.core.configs.Congif``
+    :return int status: status
     """
     from sfftkplus import schema
     # convert an EMDB-SFF file to an ROI file
@@ -209,12 +235,21 @@ def handle_view3d(args):
         print_date("Unsupported file type: {}".format(args.sff_file))
         return 1
     # convert segments to VTK meshes
-    vtk_seg = sff_seg.as_vtk(args)
+    vtk_seg = sff_seg.as_vtk(args, configs)
     # render as 3D
     vtk_seg.render()
     return 0
 
-def handle_export(args):
+def handle_export(args, configs):
+    """
+    Handle `export` subcommand
+    
+    :param args: parsed arguments
+    :type args: ``argparse.Namespace``
+    :param configs: configurations object
+    :type config: ``sfftk.core.configs.Congif``
+    :return int status: status
+    """
     if args.verbose:
         print_date("Converting segments in {} to VTP files".format(args.sff_file))
     from sfftkplus import schema
@@ -223,31 +258,96 @@ def handle_export(args):
     else:
         print_date("Unsupported file type: {}".format(args.sff_file))
         return 1
-    vtk_seg = sff_seg.as_vtk(args)
+    vtk_seg = sff_seg.as_vtk(args, configs)
     out_fn = os.path.basename(".".join(args.sff_file.split('.')[:-1]))
     vtk_seg.export(out_fn, args)
     return 0
 
+def handle_configs(args, configs):
+    """
+    Handle `configs` subcommand
+    
+    :param args: parsed arguments
+    :type args: ``argparse.Namespace``
+    :param configs: configurations object
+    :type config: ``sfftk.core.configs.Congif``
+    :return int status: status
+    """
+    if args.config_subcommand == "list":
+        from sfftk.core.configs import list_configs
+        return list_configs(args, configs)
+    elif args.config_subcommand == "get":
+        from sfftk.core.configs import get_configs
+        return get_configs(args, configs)
+    elif args.config_subcommand == "set":
+        from sfftk.core.configs import set_configs
+        return set_configs(args, configs)
+    elif args.config_subcommand == "del":
+        from sfftk.core.configs import del_configs
+        return del_configs(args, configs)
+    elif args.config_subcommand == "clear":
+        from sfftk.core.configs import clear_configs
+        return clear_configs(args, configs)
+    return 0
+
+def handle_tests(args, configs):
+    """Handle `test` subcommand
+    
+    :param args: parsed arguments
+    :type args: `argparse.Namespace`
+    :param configs: configurations object
+    :type config: ``sfftk.core.configs.Congif``
+    :return int status: status
+    """
+    if isinstance(args.tool, str):
+#         from .unittests import test_main
+#         _module_test_runner(test_main, args)
+        _discover_test_runner("sfftkplus.unittests", args)
+    else:
+#         if 'main' in args.tool:
+#             from .unittests import test_main
+#             _module_test_runner(test_main, args)
+        if 'core' in args.tool:
+            from .unittests import test_core
+            _module_test_runner(test_core, args)
+        if 'formats' in args.tool:
+            from .unittests import test_formats
+            _module_test_runner(test_formats, args)
+        if 'schema' in args.tool:
+            from .unittests import test_schema
+            _module_test_runner(test_schema, args)
+        if 'readers' in args.tool:
+            from .unittests import test_readers
+            _module_test_runner(test_readers, args)
+        if 'omero' in args.tool:
+            from .unittests import test_omero
+            _module_test_runner(test_omero, args)
+    return 0
+  
 def main():
     try:
         from sfftkplus.core.parser import parse_args
-        args = parse_args(sys.argv[1:])
+        args, configs = parse_args(sys.argv[1:])
         # missing args
         if not args:
             return 1
         # subcommands
-        if args.subcommand == 'createroi':
-            return handle_createroi(args)
+        if args.subcommand == "config":
+            return handle_configs(args, configs)
+        elif args.subcommand == 'createroi':
+            return handle_createroi(args, configs)
         elif args.subcommand == 'attachroi':
-            return handle_attachroi(args)
+            return handle_attachroi(args, configs)
         elif args.subcommand == 'delroi':
-            return handle_delroi(args)
+            return handle_delroi(args, configs)
         elif args.subcommand == "view3d":
-            return handle_view3d(args)
+            return handle_view3d(args, configs)
         elif args.subcommand == "list":
-            return handle_list(args)
+            return handle_list(args, configs)
         elif args.subcommand == "export":
-            return handle_export(args)
+            return handle_export(args, configs)
+        elif args.subcommand == "tests":
+            return handle_tests(args, configs)
     except KeyboardInterrupt:
         # handle keyboard interrupt
         return 0

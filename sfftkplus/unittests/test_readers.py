@@ -24,7 +24,7 @@ __date__    = "2017-08-14"
 class TestReaders_roireader(unittest.TestCase):
     def test_get_data(self):
         """Test get_data function"""
-        roi_fn = os.path.join(tests.TEST_DATA_PATH, 'test_emd_1832.roi')
+        roi_fn = os.path.join(tests.TEST_DATA_PATH, 'roi', 'test_emd_1832.roi')
         roi_data = roireader.get_data(roi_fn)
         self.assertEqual(roi_data.image_ids.top, 106)
         self.assertEqual(roi_data.image_ids.front, 104)

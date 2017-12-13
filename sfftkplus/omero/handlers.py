@@ -21,7 +21,7 @@ import sys
 import time
 
 import re
-import omero.gateway  # @UnresolvedImport
+import omero.gateway
 from omero.model import RoiI  # @UnresolvedImport
 from omero.rtypes import rstring
 import omero.sys
@@ -250,27 +250,33 @@ class ROIView(object):
 
 
 class OMEROConnection(object):
-    def __init__(self, args):
+    def __init__(self, args, configs):
         self.args = args
+        self.configs = configs
+        self.connect_with = self.configs['CONNECT_WITH']
+        self.host = self.configs['OMERO_{}_HOST'.format(self.connect_with)]
+        self.user = self.configs['OMERO_{}_USER'.format(self.connect_with)]
+        self.password = self.configs['OMERO_{}_PASSWORD'.format(self.connect_with)]
+        self.port = self.configs['OMERO_{}_PORT'.format(self.connect_with)]
         
     def __enter__(self):
-        from omero.gateway import BlitzGateway
+        from omero.gateway import BlitzGateway  # @UnresolvedImport
         self.conn = BlitzGateway(
-            host=self.args.host, 
-            username=self.args.user, 
-            passwd=self.args.password,
-            port=self.args.port
+            host=self.host, 
+            username=self.user, 
+            passwd=self.password,
+            port=self.port
             )
         self.connected = self.conn.connect()
         # failed to connect
         if not self.connected:
-            print_date("Unable to connect to host '{}' on port {} using user '{}'".format(self.args.host, self.args.port, self.args.user))
+            print_date("Unable to connect to host '{}' on port {} using user '{}'".format(self.host, self.port, self.user))
             print_date("Check that server is up")
             sys.exit(1)
         # keepalive
         self.conn.c.enableKeepAlive(5)
-        self.user = self.conn.getUser()
-        self.userId = self.user.getId()
+        self.omero_user = self.conn.getUser()
+        self.userId = self.omero_user.getId()
         self.updateService = self.conn.getUpdateService()
         self.roiService = self.conn.getRoiService()
         return self
@@ -359,7 +365,9 @@ class OMEROConnection(object):
             except AssertionError:
                 print_date("Invalid type for image ID: {}".format(type(self.args.image_id)))
                 sys.exit(1)  
-            images.append(self.getImage(self.args.image_id))
+            image = self.getImage(self.args.image_id)
+            if image is not None:
+                images.append(image)
         elif self.args.image_name is not None:
             images = self.conn.searchObjects(["Image"], self.args.image_name)
         else:

@@ -10,7 +10,6 @@ __date__    = "2017-06-29"
 
 from ..schema.roi import parse
 
-
 def get_data(fn, *args, **kwargs):
     roi_data = parse(fn, silence=True)
     return roi_data

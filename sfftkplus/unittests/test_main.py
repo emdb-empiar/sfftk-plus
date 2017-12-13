@@ -22,8 +22,6 @@ import __init__ as tests # import _random_integer, _random_float
 
 sys.path.insert(0, "..")
 
-from .. import sff as Main
-
 
 # redirect sys.stderr/sys.stdout to /dev/null
 # from: http://stackoverflow.com/questions/8522689/how-to-temporary-hide-stdout-or-stderr-while-running-a-unittest-in-python
@@ -39,97 +37,6 @@ host = 'localhost'
 port = '4064'
 
 
-class TestMain_handle_convert(unittest.TestCase):
-    def setUp(self):
-        unittest.TestCase.setUp(self)
-        map(os.remove, glob.glob('sff/test_data/*.sff'))
-    
-    def tearDown(self):
-        unittest.TestCase.tearDown(self)
-        map(os.remove, glob.glob('sff/test_data/*.sff'))
-        
-    def test_read_segger(self):
-        """Test that we can convert .seg"""
-        args = parse_args(['convert', '-o', 'sff/test_data/test_data.sff', 'sff/test_data/test_data.seg'])
-        
-        Main.handle_convert(args)
-        sff_files = glob.glob('sff/test_data/*.sff')
-        
-        self.assertEqual(len(sff_files), 1)
-    
-    def test_read_imod(self):
-        """Test that we can convert .mod"""
-        args = parse_args(['convert', '-o', 'sff/test_data/test_data.sff', 'sff/test_data/test_data.mod'])
-        
-        Main.handle_convert(args)
-        sff_files = glob.glob('sff/test_data/*.sff')
-        
-        self.assertEqual(len(sff_files), 1)
-    
-    # LONG-RUNNING TESTS: UNCOMMENT LATER
-#     def test_read_amira_mesh(self):
-#         """Test that we can convert .am"""
-#         args = parse_args(['convert', '-o', 'sff/test_data/test_data.sff', 'sff/test_data/test_data.am'])
-#          
-#         Main.handle_convert(args)
-#         sff_files = glob.glob('sff/test_data/*.sff')
-#          
-#         self.assertEqual(len(sff_files), 1)
-     
-    def test_read_amira_surf(self):
-        """Test that we can convert .surf"""
-        args = parse_args(['convert', '-o', 'sff/test_data/test_data.sff', 'sff/test_data/test_data.surf'])
-         
-        Main.handle_convert(args)
-        sff_files = glob.glob('sff/test_data/*.sff')
-         
-        self.assertEqual(len(sff_files), 1)
-    
-    def test_read_unknown(self):
-        """Test that unknown fails"""
-        args = parse_args(['convert', '-o', 'sff/test_data/test_data.sff', 'sff/test_data/test_data.xxx'])
-        
-        with self.assertRaises(ValueError):
-            Main.handle_convert(args)
-            
-        sff_files = glob.glob('sff/test_data/*.sff')
-        
-        self.assertEqual(len(sff_files), 0)
-
-
-class TestMain_handle_view(unittest.TestCase):
-    def test_read_segger(self):
-        """Test that we can view .seg"""
-        args = parse_args(['view', 'sff/test_data/test_data.mod'])
-        
-        self.assertEqual(0, Main.handle_view(args))
-    
-    def test_read_imod(self):
-        """Test that we can view .mod"""
-        args = parse_args(['view', 'sff/test_data/test_data.mod'])
-        
-        self.assertEqual(0, Main.handle_view(args))
-        
-    def test_read_amira_mesh(self):
-        """Test that we can view .am"""
-        args = parse_args(['view', 'sff/test_data/test_data.am'])
-         
-        self.assertEqual(0, Main.handle_view(args))
-    
-    def test_read_amira_surf(self):
-        """Test that we can view .surf"""
-        args = parse_args(['view', 'sff/test_data/test_data.surf'])
-        
-        self.assertEqual(0, Main.handle_view(args))
-        
-    def test_read_unknown(self):
-        """Test that we cannot view unknown"""
-        args = parse_args(['view', 'sff/test_data/test_data.xxx'])
-        
-        with self.assertRaises(ValueError):
-            Main.handle_view(args)
-
-
 #===============================================================================
 # sfftk-plus tests
 #===============================================================================
@@ -138,24 +45,24 @@ class TestMain_handle_view(unittest.TestCase):
 #         """Test that we can list all images"""
 #         cmd = 'list -U {} -P {} -H {} -p {} -I'.format(user, password, host, port ).split(' ')
 #         args = parse_args(cmd)
-#          
+#           
 #         self.assertEqual(0, Main.handle_list(args))
-#     
+#      
 #     def test_list_image(self):
 #         """Test that we can list one image"""
 #         cmd = 'list -U {} -P {} -H {} -p {} -I -i 401'.format(user, password, host, port ).split(' ')
 #         args = parse_args(cmd)
-#          
+#           
 #         self.assertEqual(0, Main.handle_list(args))
-#     
+#      
 #     def test_list_rois(self):
 #         """Test listing of all ROIs"""
 #         cmd = 'list -U {} -P {} -H {} -p {} -R'.format(user, password, host, port ).split(' ')
 #         args = parse_args(cmd)
-#          
+#           
 #         self.assertEqual(0, Main.handle_list(args))
-# 
-# 
+#  
+#  
 # class TestMain_handle_createroi(unittest.TestCase):
 #     @staticmethod
 #     def clear_files():

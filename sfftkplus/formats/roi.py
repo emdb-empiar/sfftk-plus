@@ -24,10 +24,8 @@ and limitations under the License.
 from __future__ import division
 
 import sys
-
 import psycopg2
 
-from ..core.configs import get_configs
 from sfftk.core.print_tools import print_date
 
 from ..formats.base import Segmentation, Header, Annotation, Segment, Contours
@@ -40,10 +38,7 @@ __email__ = "pkorir@ebi.ac.uk, paul.korir@gmail.com"
 __date__ = "2017-04-11"
 
 
-configs = get_configs()
-
-
-def get_image_id(cursor, image_name_root, view, ext='map'):
+def get_image_id(cursor, image_name_root, view, ext='map', quick_pick=None):
     """Obtain the image IDs for top, front and right images by EMDB accession code
     
     :param cursor: cursor to postgres connection
@@ -70,15 +65,19 @@ def get_image_id(cursor, image_name_root, view, ext='map'):
     except AssertionError:
         print_date("Invalid extension: {}; should be one of {}".format(ext, ", ".join(exts)))
         sys.exit(1)
-    query_string = "select id from image where image.name like '{}-{}%'".format(image_name_root, view)
+    query_string = "select id from image where image.name like '{}-{}.%'".format(image_name_root, view)
     cursor.execute(query_string)
     rows = cursor.fetchall()
     if rows:
         if len(rows) == 1:
             return rows[0][0]
         else:
-            print_date("Multiple image IDs: {}".format(rows))
-            return 0
+            print_date("Multiple image IDs for {}-{}: {}".format(image_name_root, view, rows))
+            if quick_pick is not None:
+                print_date("Quick picking an ID from index {}".format(quick_pick))
+                return rows[quick_pick][0]
+            else:
+                return 0
     else:
         print_date("No image IDs found for view '{}'".format(view))
         return 0
@@ -276,7 +275,7 @@ class ROIHeader(Header):
                 self._right_id = None
     
     @classmethod
-    def from_vtk(cls, vtk_args):
+    def from_vtk(cls, vtk_args, configs):
         obj = cls()
         try:
             if vtk_args.image_name_root is not None:
@@ -291,9 +290,9 @@ class ROIHeader(Header):
                     ) 
                 conn = psycopg2.connect(conn_str)
                 cur = conn.cursor()
-                obj.top_id = get_image_id(cur, vtk_args.image_name_root, 'top')
-                obj.front_id = get_image_id(cur, vtk_args.image_name_root, 'front')
-                obj.right_id = get_image_id(cur, vtk_args.image_name_root, 'side')
+                obj.top_id = get_image_id(cur, vtk_args.image_name_root, 'top', quick_pick=vtk_args.quick_pick)
+                obj.front_id = get_image_id(cur, vtk_args.image_name_root, 'front', quick_pick=vtk_args.quick_pick)
+                obj.right_id = get_image_id(cur, vtk_args.image_name_root, 'side', quick_pick=vtk_args.quick_pick)
                 # sanity check
                 assert obj.top_id != obj.front_id and obj.right_id != obj.front_id
             else:
@@ -368,9 +367,9 @@ class ROISegmentation(Segmentation):
             self._oriented_segments, self._segment_colours = self._compute_oriented_segments()
             
     @classmethod
-    def from_vtk(cls, vtk_seg):
+    def from_vtk(cls, vtk_seg, configs):
         obj = cls()
-        obj.header = ROIHeader.from_vtk(vtk_seg.vtk_args)
+        obj.header = ROIHeader.from_vtk(vtk_seg.vtk_args, configs)
         obj.segments = map(ROISegment.from_vtk, vtk_seg.segments)
         return obj
     

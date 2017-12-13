@@ -16,5 +16,5 @@ class SFFPSegmentation(sfftk.schema.SFFSegmentation):
     """Extension of sfftk.schema.SFFSegmentation incorporation ROI conversion"""
     def __init__(self, *args, **kwargs):
         super(SFFPSegmentation, self).__init__(*args, **kwargs)
-    def as_vtk(self, args):
-        return VTKSegmentation(self, args)
+    def as_vtk(self, args, configs):
+        return VTKSegmentation(self, args, configs)

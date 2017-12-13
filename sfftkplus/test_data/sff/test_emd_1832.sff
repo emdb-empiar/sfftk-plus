@@ -18,10 +18,15 @@
             <data>5.69999980927 0.0 0.0 -182.399993896 0.0 5.69999980927 0.0 -182.399993896 0.0 0.0 5.69999980927 -182.399993896</data>
         </transformationMatrix>
     </transformList>
-    <filePath>/Users/pkorir/Documents/workspace/bioimaging-scripts/trunk/sfftk-plus/sfftkplus/test_data</filePath>
+    <filePath>/Users/pkorir/Documents/workspace/bioimaging-scripts/trunk/sfftk-plus/sfftkplus/test_data/sff</filePath>
     <primaryDescriptor>threeDVolume</primaryDescriptor>
+    <globalExternalReferences/>
     <segmentList>
         <segment id="85" parentID="0">
+            <biologicalAnnotation>
+                <externalReferences/>
+            </biologicalAnnotation>
+            <complexesAndMacromolecules/>
             <colour>
                 <rgba>
                     <red>0.521576881408691</red>
@@ -37,6 +42,10 @@
             </threeDVolume>
         </segment>
         <segment id="93" parentID="0">
+            <biologicalAnnotation>
+                <externalReferences/>
+            </biologicalAnnotation>
+            <complexesAndMacromolecules/>
             <colour>
                 <rgba>
                     <red>0.504164099693298</red>
@@ -52,6 +61,10 @@
             </threeDVolume>
         </segment>
         <segment id="97" parentID="0">
+            <biologicalAnnotation>
+                <externalReferences/>
+            </biologicalAnnotation>
+            <complexesAndMacromolecules/>
             <colour>
                 <rgba>
                     <red>0.669882595539093</red>
@@ -67,6 +80,10 @@
             </threeDVolume>
         </segment>
         <segment id="101" parentID="0">
+            <biologicalAnnotation>
+                <externalReferences/>
+            </biologicalAnnotation>
+            <complexesAndMacromolecules/>
             <colour>
                 <rgba>
                     <red>0.862361133098602</red>
@@ -82,6 +99,10 @@
             </threeDVolume>
         </segment>
         <segment id="103" parentID="0">
+            <biologicalAnnotation>
+                <externalReferences/>
+            </biologicalAnnotation>
+            <complexesAndMacromolecules/>
             <colour>
                 <rgba>
                     <red>0.706890761852264</red>
@@ -97,6 +118,10 @@
             </threeDVolume>
         </segment>
         <segment id="104" parentID="0">
+            <biologicalAnnotation>
+                <externalReferences/>
+            </biologicalAnnotation>
+            <complexesAndMacromolecules/>
             <colour>
                 <rgba>
                     <red>0.787909328937531</red>
@@ -112,4 +137,5 @@
             </threeDVolume>
         </segment>
     </segmentList>
+    <details></details>
 </segmentation>

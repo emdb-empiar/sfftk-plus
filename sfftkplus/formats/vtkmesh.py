@@ -1709,8 +1709,9 @@ class VTKSegment(Segment):
         """
         :TODO: currently only handles only RGBA colours
         """
-        colour = self._sff_segment.colour.rgba.value
+        colour = list(self._sff_segment.colour.rgba.value)
         if colour[0] is not None and colour[1] is not None and colour[2] is not None and colour[3] is not None:
+            colour[3] = self._vtk_args.transparency
             return colour
         else:
             colour = random(), random(), random(), 1
@@ -1741,11 +1742,12 @@ class VTKHeader(Header):
 
 
 class VTKSegmentation(Segmentation):
-    def __init__(self, sff_seg, args):
+    def __init__(self, sff_seg, args, configs):
         self._sff_seg = sff_seg # the EMDB-SFF segmentation
         if not args.primary_descriptor:
             args.primary_descriptor = self._sff_seg.primaryDescriptor
         self._vtk_args = args
+        self.configs = configs
         self._header = VTKHeader(self._sff_seg, self._vtk_args)
         self._segments = list()
         self._sliced_segments = list()
@@ -1793,9 +1795,9 @@ class VTKSegmentation(Segmentation):
         for segment in self.segments:
             segment.slice()
     
-    def as_roi(self):
+    def as_roi(self, configs):
         from ..formats.roi import ROISegmentation
-        return ROISegmentation.from_vtk(self)
+        return ROISegmentation.from_vtk(self, configs)
     
     def render(self):
         """Render to display"""
