@@ -6,25 +6,27 @@ configs.py
 SFFTK configs
 """
 
-__author__  = 'Paul K. Korir, PhD'
-__email__   = 'pkorir@ebi.ac.uk, paul.korir@gmail.com'
-__date__    = '2016-08-23'
+__author__ = 'Paul K. Korir, PhD'
+__email__ = 'pkorir@ebi.ac.uk, paul.korir@gmail.com'
+__date__ = '2016-08-23'
 
 
 import os.path
+
+from sfftk.core.configs import Configs
 from sfftk.core.print_tools import print_date
 import sfftkplus
-from sfftk.core.configs import Configs
+
 
 class SFFPConfigs(Configs):
-    shipped_configs = os.path.join(sfftkplus.__path__[0], 'sffplus.conf')
-    
+    shipped_configs = os.path.join(sfftkplus.__path__[0], 'sffp.conf')
+
     def read(self):
-        super(SFFPConfigs, self).read()         
+        super(SFFPConfigs, self).read()
         # CONNECT_WITH must be defined in sffplus.conf
         try:
             assert 'CONNECT_WITH' in self
-            # CONNECT_WITH can only have specified values 
+            # CONNECT_WITH can only have specified values
             connect_with_values = ['LOCAL', 'REMOTE']
             try:
                 assert self['CONNECT_WITH'] in connect_with_values

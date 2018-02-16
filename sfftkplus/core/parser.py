@@ -8,9 +8,9 @@ from sfftk.core.parser import add_args
 from sfftk.core.print_tools import print_date
 
 
-__author__  = 'Paul K. Korir, PhD'
-__email__   = 'pkorir@ebi.ac.uk, paul.korir@gmail.com'
-__date__    = '2016-06-10'
+__author__ = 'Paul K. Korir, PhD'
+__email__ = 'pkorir@ebi.ac.uk, paul.korir@gmail.com'
+__date__ = '2016-06-10'
 
 
 verbosity_range = range(4)
@@ -18,9 +18,9 @@ verbosity_range = range(4)
 Parser = argparse.ArgumentParser(prog='sffp', description="The EMDB-SFF Toolkit (sfftk)")
 
 subparsers = Parser.add_subparsers(
-    title='Tools', 
-    dest='subcommand', 
-    description='The EMDB-SFF Extended Toolkit (sfftk-plus) provides the following tools:', 
+    title='Tools',
+    dest='subcommand',
+    description='The EMDB-SFF Extended Toolkit (sfftk-plus) provides the following tools:',
     metavar="EMDB-SFF tools"
     )
 
@@ -45,14 +45,14 @@ dataset = {
 details_param = {
     'args':['-d', '--details'],
     'kwargs': {
-        'default': "", 
+        'default': "",
         'help': "populates <details>...</details> in the XML file [default: '']"
         }
     }
 # host = {
 #     'args': ['-H', '--host'],
 #     'kwargs': {
-# #         'default': 'localhost', 
+# #         'default': 'localhost',
 #         'help': 'OMERO-server host'
 #         }
 #     }
@@ -82,17 +82,17 @@ mask_value = {
     'args': ['-m', '--mask-value'],
     'kwargs': {
         'default': 1,
-        'type': int, 
+        'type': int,
         'help': "for masks (threeDVolume segments): an integer value used mark masked regions [default: 1]"
         }
     }
 normals_off = {
     'args': ['-N', '--normals-off'],
     'kwargs': {
-        'action': 'store_true', 
-        'default': False, 
+        'action': 'store_true',
+        'default': False,
         'help': "do not to use normals if present [default: False]",
-        } 
+        }
     }
 image_name = {
     'args': ['-n', '--image-name'],
@@ -132,12 +132,12 @@ config_path = {
 # port = {
 #     'args':['-Q', '--port'],
 #     'kwargs': {
-# #         'default': '4064', 
+# #         'default': '4064',
 #         'type': int,
 #         'help': 'OMERO-server host'
 #         }
 #     }
-primary_descriptor   = {
+primary_descriptor = {
     'args':['-R', '--primary-descriptor'],
     'kwargs': {
         'default': None,
@@ -164,13 +164,13 @@ default_transparency = 0.5
 transparency = {
     'args':['-t', '--transparency'],
     'kwargs': {
-        'type': float, 
-        'default': default_transparency, 
+        'type': float,
+        'default': default_transparency,
         'help': "set the transparency on a scale of 0.0 (transparent) to 1.0 (opaque) [default: {}]".format(default_transparency)
         }
     }
 # user = {
-#     'args': ['-U', '--user'], 
+#     'args': ['-U', '--user'],
 #     'kwargs': {
 #         'help': 'OMERO-server username',
 #         }
@@ -178,8 +178,8 @@ transparency = {
 verbose = {
     'args':['-v', '--verbose'],
     'kwargs': {
-        'action': 'store_true', 
-        'default': False, 
+        'action': 'store_true',
+        'default': False,
         'help': "verbose output"
         }
     }
@@ -277,11 +277,11 @@ add_args(clear_configs_parser, shipped_configs)
 # list subparser
 #===============================================================================
 list_parser = subparsers.add_parser(
-    'list', 
-    description="Lists various entities", 
+    'list',
+    description="Lists various entities",
     help="list various entities"
     )
-list_type_group = list_parser.add_mutually_exclusive_group() 
+list_type_group = list_parser.add_mutually_exclusive_group()
 list_type_group.add_argument('-I', '--images', action='store_true', default=False, help="list images in OMERO-server")
 list_type_group.add_argument('-R', '--rois', action='store_true', default=False, help="list ROIs in OMERO-server")
 list_find_group = list_parser.add_mutually_exclusive_group()
@@ -323,7 +323,7 @@ createroi_parser.add_argument('-q', '--quick-pick', type=int, help="if multiple 
 #===============================================================================
 # attachroi subparser
 #===============================================================================
-attachroi_parser = subparsers.add_parser('attachroi',  description="Associate the ROIs from the file with the image (by ID) in the OMERO-server", help="attach ROIs to image")
+attachroi_parser = subparsers.add_parser('attachroi', description="Associate the ROIs from the file with the image (by ID) in the OMERO-server", help="attach ROIs to image")
 attachroi_parser.add_argument('roi_file', help="file with ROIs")
 attachroi_parser.add_argument('-x', '--x-image-id', type=int, help="id of front image in OMERO-server")
 attachroi_parser.add_argument('-y', '--y-image-id', type=int, help="id of rightside image in OMERO-server")
@@ -435,15 +435,15 @@ def parse_args(_args):
         elif _args[0] in Parser._actions[1].choices.keys():
             exec('{}_parser.print_help()'.format(_args[0]))
             sys.exit(0)
-    
-    # parse args         
+
+    # parse args
     args = Parser.parse_args(_args)
     from sfftk.core.configs import load_configs
     from .configs import SFFPConfigs
     configs = load_configs(
-        args, 
-        user_folder=".sfftkplus", 
-        conf_fn="sffplus.conf", 
+        args,
+        user_folder=".sfftkplus",
+        conf_fn="sffp.conf",
         config_class=SFFPConfigs
         )
 
@@ -456,7 +456,7 @@ def parse_args(_args):
             except AssertionError:
                 print_date('Invalid value for primaryDescriptor: %s' % args.primary_descriptor)
                 return None, configs
-        
+
         # ensure valid transparencey
         if args.transparency:
             try:
@@ -464,26 +464,26 @@ def parse_args(_args):
             except AssertionError:
                 print_date("Invalid value for transparency: {}; should be between 0 and 1 (inclusive)".format(args.transparency))
                 return None, configs
-        
+
         # ensure mask value is an integer (or long)
         if args.mask_value:
             try:
                 assert isinstance(args.mask_value, int) or isinstance(args.mask_value, long)
             except AssertionError:
                 print_date("Non-integer for mask value")
-                return None, configs 
+                return None, configs
     # delroi
     elif args.subcommand == 'delroi':
         # ensure that we have either an image or ROI ID
         if not args.image_id and not args.roi_id:
             raise ValueError('Missing either image (-i) or ROI (-r) ID')
-        
+
         # ensure that both image and ROI ID are not set simultaneously
         if args.image_id and args.roi_id:
             raise ValueError('Only set one of image (-i) or ROI (-r) ID; not both')
-    
+
     # tests
-    elif args.subcommand == 'tests':        
+    elif args.subcommand == 'tests':
         if isinstance(args.tool, list):
             for tool in args.tool:
                 try:
@@ -491,13 +491,13 @@ def parse_args(_args):
                 except AssertionError:
                     print >> sys.stderr, "Unknown tool: {}".format(tool)
                     print >> sys.stderr, "Available tools for test: {}".format(", ".join(tool_list))
-        
+
         if args.verbosity:
             try:
                 assert args.verbosity in range(4)
             except:
                 raise ValueError("Verbosity should be in %s-%s: %s given" % (verbosity_range[0], verbosity_range[-1], args.verbosity))
-    
+
     # view3d
     elif args.subcommand == 'view3d':
         if args.primary_descriptor:
@@ -505,21 +505,21 @@ def parse_args(_args):
                 assert args.primary_descriptor in ['threeDVolume', 'contourList', 'meshList', 'shapePrimitiveList']
             except:
                 raise ValueError('Invalid value for primaryDescriptor: %s' % args.primary_descriptor)
-        
+
         # ensure valid transparencey
         assert 0 <= args.transparency <= 1
-        
-        # ensure valid background colours
+
+        #  ensure valid background colours
         assert 0 <= args.background_colour[0] <= 1
         assert 0 <= args.background_colour[1] <= 1
         assert 0 <= args.background_colour[2] <= 1
-        
+
         # view contours
         # don't specify -A and -X, -Y, and/or -Z
         if args.all_contours or args.x_contours or args.y_contours or args.z_contours:
             assert (args.all_contours and not (args.x_contours or args.y_contours or args.z_contours)) or (not args.all_contours and (args.x_contours or args.y_contours or args.z_contours))
-        
+
         # cube axes validity
         assert (0 <= args.cube_axes <= 4) or (args.cube_axes is None)
-    
+
     return args, configs
