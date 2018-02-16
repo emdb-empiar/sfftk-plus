@@ -15,19 +15,20 @@ import os.path
 
 from sfftk.core.configs import Configs
 from sfftk.core.print_tools import print_date
-import sfftkplus
+from sfftkplus import BASE_DIR
 
 
 class SFFPConfigs(Configs):
-    shipped_configs = os.path.join(sfftkplus.__path__[0], 'sffp.conf')
+    shipped_configs = os.path.join(BASE_DIR, 'sffp.conf')
 
     def read(self):
         super(SFFPConfigs, self).read()
-        # CONNECT_WITH must be defined in sffplus.conf
+        # CONNECT_WITH must be defined in sffp.conf
+        print self.config_fn
+        connect_with_values = ['LOCAL', 'REMOTE']
         try:
             assert 'CONNECT_WITH' in self
             # CONNECT_WITH can only have specified values
-            connect_with_values = ['LOCAL', 'REMOTE']
             try:
                 assert self['CONNECT_WITH'] in connect_with_values
             except AssertionError:
