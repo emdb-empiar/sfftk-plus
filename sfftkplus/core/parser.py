@@ -35,6 +35,14 @@ shipped_configs = {
         'help': 'use shipped configs only if config path and user configs fail [default: False]'
         }
     }
+center = {
+    'args': ['-c', '--center'],
+    'kwargs': {
+        'default': False,
+        'action': 'store_true',
+        'help': 'translate the segmentation to have its center around the origin [default: False]'
+        }
+    }
 dataset = {
     'args': ['-d', '--dataset'],
     'kwargs': {
@@ -392,6 +400,7 @@ export_parser.add_argument(*output_path['args'], **output_path['kwargs'])
 add_args(export_parser, config_path)
 add_args(export_parser, shipped_configs)
 add_args(export_parser, transparency)
+add_args(export_parser, center)
 
 # get the full list of tools from the Parser object
 tool_list = ['core', 'formats', 'omero', 'readers', 'schema', 'main']

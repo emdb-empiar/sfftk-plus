@@ -9,22 +9,24 @@ sfftkplus.sffplus
 from __future__ import division
 
 from getpass import getpass
-import re
 import os
+import re
 import sys
+
 from sfftk.core.print_tools import print_date, print_static
-from sfftk.sff import _module_test_runner, _testcase_test_runner, _discover_test_runner 
+from sfftk.sff import _module_test_runner, _testcase_test_runner, _discover_test_runner
 
 
-__author__  = "Paul K. Korir, PhD"
-__email__   = "pkorir@ebi.ac.uk, paul.korir@gmail.com"
-__date__    = "2017-02-17"
+__author__ = "Paul K. Korir, PhD"
+__email__ = "pkorir@ebi.ac.uk, paul.korir@gmail.com"
+__date__ = "2017-02-17"
+__updated__ = "2018-02-21"
 
 
 # auxilliary function
 # def get_credentials(args, configs):
 #     """Get credentials to use for OMERO connections from either args or configs
-#     
+#
 #     :param args: command line argments
 #     :type args: ``argparse.Namespace``
 #     :param dict configs: dictionary of configurations read from text config file
@@ -39,7 +41,7 @@ __date__    = "2017-02-17"
 #         user = configs['OMERO_{}_USER'.format(cw)]
 #     elif args.user:
 #         user = args.user
-#     
+#
 #     # password
 #     if 'OMERO_{}_PASSWORD'.format(cw) in configs:
 #         password = configs['OMERO_{}_PASSWORD'.format(cw)]
@@ -47,19 +49,19 @@ __date__    = "2017-02-17"
 #         password = args.password
 #     else:
 #         password = getpass()
-#    
+#
 #     # host
 #     if 'OMERO_{}_HOST'.format(cw) in configs:
 #         host = configs['OMERO_{}_HOST'.format(cw)]
 #     elif args.host:
 #         host = args.host
-#        
+#
 #     # port
 #     if 'OMERO_{}_PORT'.format(cw) in configs:
 #         port = configs['OMERO_{}_PORT'.format(cw)]
 #     elif args.port:
 #         port = args.port
-#     
+#
 #     return user, password, host, port
 
 def get_image_ids(roi_seg, args):
@@ -79,11 +81,11 @@ def get_image_ids(roi_seg, args):
             image_ids['y'] = args.y_image_id
         if args.z_image_id:
             image_ids['z'] = args.z_image_id
-    else: # check for image_ids in the roi file
+    else:  # check for image_ids in the roi file
         image_ids['x'] = roi_seg.header.front_id
         image_ids['y'] = roi_seg.header.right_id
         image_ids['z'] = roi_seg.header.top_id
-    # make sure we have some image_ids to use
+    #  make sure we have some image_ids to use
     if len(image_ids) == 0:
         raise ValueError("No image identifiers specified. Aborting...")
     return image_ids
@@ -115,7 +117,7 @@ def handle_attachroi(args, configs):
     """
     from .formats.roi import ROISegmentation
     from .omero.handlers import OMEROConnection
-    
+
     if re.match(r'.*\.roi$', args.roi_file, re.IGNORECASE):
         if args.verbose:
             print_date("Reading ROIs from %s..." % args.roi_file)
@@ -141,7 +143,7 @@ def handle_attachroi(args, configs):
             image = connection.getImage(image_id)
             if image:
                 if args.verbose:
-                    print_date("OK", incl_date=False)  
+                    print_date("OK", incl_date=False)
                 # convert the oriented segments to rois
                 omero_rois = roi_seg.as_omero_rois(orientation, image, args)
                 # load the rois to OMERO
@@ -158,7 +160,7 @@ def handle_attachroi(args, configs):
             else:
                 if args.verbose:
                     print_date("FAIL", incl_date=False)
-                continue # non-fatal
+                continue  # non-fatal
     return 0
 
 def handle_delroi(args, configs):
@@ -206,7 +208,7 @@ def handle_createroi(args, configs):
         sff_seg = schema.SFFPSegmentation(args.sff_file)
     else:
         print_date("Unsupported file type: {}".format(args.sff_file))
-        return 1  
+        return 1
     # convert segments to VTK meshes
     vtk_seg = sff_seg.as_vtk(args, configs)
     # slice to get contours
@@ -252,7 +254,7 @@ def handle_export(args, configs):
     """
     if args.verbose:
         print_date("Converting segments in {} to VTP files".format(args.sff_file))
-    from sfftkplus import schema
+    from . import schema
     if re.match(r'.*\.(sff|hff)$', args.sff_file, re.IGNORECASE):
         sff_seg = schema.SFFPSegmentation(args.sff_file)
     else:
@@ -323,7 +325,7 @@ def handle_tests(args, configs):
             from .unittests import test_omero
             _module_test_runner(test_omero, args)
     return 0
-  
+
 def main():
     try:
         from sfftkplus.core.parser import parse_args
