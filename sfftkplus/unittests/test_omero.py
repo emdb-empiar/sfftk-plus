@@ -442,7 +442,6 @@ class TestHandler_OMEROROI_attachROI(unittest.TestCase):
         '''
         from ..formats.roi import ROISegmentation
         args, configs = parse_args(shlex.split('attachroi --config-path {} file.roi'.format(self.config_fn)))
-        print configs
         roi_fn = os.path.join(TEST_DATA_PATH, 'roi', 'test_emd_1832.roi')
         roi_seg = ROISegmentation(roi_fn)
         image_ids = get_image_ids(roi_seg, args)

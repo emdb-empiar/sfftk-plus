@@ -38,7 +38,7 @@ import vtk
 __author__ = "Paul K. Korir, PhD"
 __email__ = "pkorir@ebi.ac.uk, paul.korir@gmail.com"
 __date__ = "2017-04-12"
-__updated__ = "2018-02-21"
+__updated__ = "2018-02-27"
 
 
 def simplify_mask(mask, r_ids, r_p_zip, replace=True):
@@ -904,7 +904,6 @@ class VTKSegmentation(Segmentation):
                     x, y, z = center_point
                     to = (-x, -y, -z)
                     mesh2 = mesh.translate(to)
-                    print 'after: ', mesh2.GetBounds()
                 else:
                     mesh2 = mesh
                 # decimate
