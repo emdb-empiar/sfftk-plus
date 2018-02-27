@@ -24,7 +24,6 @@ class SFFPConfigs(Configs):
     def read(self):
         super(SFFPConfigs, self).read()
         # CONNECT_WITH must be defined in sffp.conf
-        print self.config_fn
         connect_with_values = ['LOCAL', 'REMOTE']
         try:
             assert 'CONNECT_WITH' in self

@@ -78,12 +78,12 @@ project = {
         'help': "project name [default: None]"
         }
     }
-use_local = {
-    'args': ['-l', '--local'],
+local = {
+    'args': ['--local'],
     'kwargs': {
-        'default': True,
+        'default': False,
         'action': 'store_true',
-        'help': 'connect to local OMERO using credentials specified in configs [default: True; mutex with -r/--remote]'
+        'help': 'connect to local OMERO using credentials specified in configs [default: False; mutex with --remote]'
         }
     }
 mask_value = {
@@ -152,14 +152,14 @@ primary_descriptor = {
         'help': "populates the <primaryDescriptor>...</primaryDescriptor> to this value [valid values:  threeDVolume, contourList, meshList, shapePrimitiveList]"
         }
     }
-# use_remote = {
-#     'args': ['-r', '--remote'],
-#     'kwargs': {
-#         'default': False,
-#         'action': 'store_true',
-#         'help': 'connect to remote OMERO using credentials specified in configs [default: False; mutex with -l/--local]'
-#         }
-#     }
+remote = {
+    'args': ['--remote'],
+    'kwargs': {
+        'default': False,
+        'action': 'store_true',
+        'help': 'connect to remote OMERO using credentials specified in configs [default: False; mutex with --local]'
+        }
+    }
 summary = {
     'args': ['-s', '--summary'],
     'kwargs': {
@@ -305,9 +305,11 @@ add_args(list_parser, verbose)
 # list_parser.add_argument(*password['args'], **password['kwargs'])
 # list_parser.add_argument(*host['args'], **host['kwargs'])
 # list_parser.add_argument(*port['args'], **port['kwargs'])
-# group = list_parser.add_mutually_exclusive_group()
-# group.add_argument(*use_local['args'], **use_local['kwargs'])
-# group.add_argument(*use_remote['args'], **use_remote['kwargs'])
+local_or_remote = list_parser.add_mutually_exclusive_group()
+add_args(local_or_remote, local)
+add_args(local_or_remote, remote)
+# group.add_argument(*local['args'], **local['kwargs'])
+# group.add_argument(*remote['args'], **remote['kwargs'])
 
 
 #===============================================================================
@@ -343,6 +345,9 @@ attachroi_parser.add_argument('-z', '--z-image-id', type=int, help="id of top im
 attachroi_parser.add_argument(*verbose['args'], **verbose['kwargs'])
 attachroi_parser.add_argument(*config_path['args'], **config_path['kwargs'])
 add_args(attachroi_parser, shipped_configs)
+local_or_remote = attachroi_parser.add_mutually_exclusive_group()
+add_args(local_or_remote, local)
+add_args(local_or_remote, remote)
 
 #===============================================================================
 # delroi subparser
@@ -358,6 +363,9 @@ delroi_type_group.add_argument(*image_id['args'], **image_id['kwargs'])
 delroi_parser.add_argument(*verbose['args'], **verbose['kwargs'])
 delroi_parser.add_argument(*config_path['args'], **config_path['kwargs'])
 add_args(delroi_parser, shipped_configs)
+local_or_remote = delroi_parser.add_mutually_exclusive_group()
+add_args(local_or_remote, local)
+add_args(local_or_remote, remote)
 
 #===============================================================================
 # view3d subparser
@@ -455,9 +463,15 @@ def parse_args(_args):
         conf_fn="sffp.conf",
         config_class=SFFPConfigs
         )
+    if args.subcommand == 'list':
+        # enforce local if specified
+        if args.local:
+            configs['CONNECT_WITH'] = 'LOCAL'
+        elif args.remote:
+            configs['CONNECT_WITH'] = 'REMOTE'
 
     # createroi
-    if args.subcommand == 'createroi':
+    elif args.subcommand == 'createroi':
         # ensure valid primary_descriptor
         if args.primary_descriptor:
             try:
@@ -481,8 +495,22 @@ def parse_args(_args):
             except AssertionError:
                 print_date("Non-integer for mask value")
                 return None, configs
+    # attachroi
+    elif args.subcommand == 'attachroi':
+        # enforce local if specified
+        if args.local:
+            configs['CONNECT_WITH'] = 'LOCAL'
+        elif args.remote:
+            configs['CONNECT_WITH'] = 'REMOTE'
+
     # delroi
     elif args.subcommand == 'delroi':
+        # enforce local if specified
+        if args.local:
+            configs['CONNECT_WITH'] = 'LOCAL'
+        elif args.remote:
+            configs['CONNECT_WITH'] = 'REMOTE'
+
         # ensure that we have either an image or ROI ID
         if not args.image_id and not args.roi_id:
             raise ValueError('Missing either image (-i) or ROI (-r) ID')

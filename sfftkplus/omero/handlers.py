@@ -17,23 +17,22 @@ Version history:
 
 from __future__ import division
 
+import re
 import sys
 import time
 
-import re
 import omero.gateway
 from omero.model import RoiI  # @UnresolvedImport
 from omero.rtypes import rstring
 import omero.sys
-
 from sfftk.core.print_tools import print_date
 from sfftkplus.omero import primitives
 
 
 # from matplotlib import image
-__author__  = "Paul K. Korir, PhD"
-__email__   = "pkorir@ebi.ac.uk, paul.korir@gmail.com"
-__date__    = "2016-02-22"
+__author__ = "Paul K. Korir, PhD"
+__email__ = "pkorir@ebi.ac.uk, paul.korir@gmail.com"
+__date__ = "2016-02-22"
 
 # view width
 VIEW_WIDTH = 140
@@ -47,7 +46,7 @@ class OMEROROI(RoiI):
         
         :param str name: the name of this ROI
         :param `omero.gateway._ImageWrapper` image: the associated image
-        """        
+        """
         super(OMEROROI, self).__init__(*args, **kwargs)
         if isinstance(name, str):
             self.setName(name)
@@ -73,39 +72,39 @@ class OMEROROI(RoiI):
             else:
                 print_date("Unable to determine ROI orientation. Ensure image name has one of the form '*-front.*' (x), '*-side.*' (y) or '*-top.*' (z).")
                 sys.exit(1)
-                
+
     def getId(self):
         return super(OMEROROI, self).getId()
-    
+
     def getName(self):
         return super(OMEROROI, self).getName()
-    
+
     def setName(self, name):
         super(OMEROROI, self).setName(rstring(name))
-        
+
     def getImage(self):
         return super(OMEROROI, self).getImage()
-    
+
     def setImage(self, image):
         super(OMEROROI, self).setImage(image._obj)
-        
+
     def getProject(self):
         return self.__image.getProject().getName()
-    
+
     def getDatasets(self):
         return self.__image.listParents()
-    
+
     @property
     def orientation(self):
         return self._orientation
-    
+
     def addShape(self, shape):
         from omero.model import Shape  # @UnresolvedImport
         if isinstance(shape, Shape):
             super(OMEROROI, self).addShape(shape)
         else:
             raise TypeError('non-Shape argument: %s' % shape.__class__)
-        
+
     def load_data(self, orientation_value, oriented_segments, segment_colours):
         for segment_id, contours in oriented_segments.iteritems():
             for contour in contours:
@@ -128,7 +127,7 @@ class OMEROROI(RoiI):
                 polygon.setFontSize(2, 'POINT')
                 polygon.setFontStyle("Bold")
                 self.addShape(polygon)
-        
+
 
 class OMEROROIList(object):
     def __init__(self, roi_seg, orientation, image, args):
@@ -137,10 +136,10 @@ class OMEROROIList(object):
         self._image = image
         self._args = args
         self._omero_rois = self._make_rois()
-        
+
     def __iter__(self):
         return iter(self._omero_rois)
-    
+
     def _make_rois(self):
         omero_rois = list()
         # we are in an orientation, say 'x'
@@ -152,27 +151,27 @@ class OMEROROIList(object):
             omero_roi.load_data(orientation_value, oriented_segments, segment_colours)
             omero_rois.append(omero_roi)
         return omero_rois
-    
+
     def __len__(self):
         return len(self._omero_rois)
-    
+
     def __getitem__(self, index):
-        return self._omero_rois[index]     
-        
+        return self._omero_rois[index]
+
 
 class ImageView(object):
     width = VIEW_WIDTH
     def __init__(self, images):
         self._images = images
-        
+
     def __iter__(self):
         return iter(self._images)
-    
+
     def __str__(self):
         string = ""
         string += "*" * self.width + "\n"
         string += "*** AVAILABLE IMAGES *** ".center(self.width) + "\n"
-        string += "*" * self.width  + "\n"
+        string += "*" * self.width + "\n"
         header = "" + \
             "ImageID".ljust(8) + \
             "ImageName".ljust(40) + \
@@ -203,19 +202,19 @@ class ImageView(object):
                 )
         string += "-" * self.width + "\n"
         return string
-    
+
     def __repr__(self):
         return str(self)
 
 
 class ROIView(object):
-    width = 140 
+    width = 140
     def __init__(self, rois):
         self._rois = rois
-        
+
     def __iter__(self):
         return iter(self._rois)
-    
+
     def __str__(self):
         string = ""
         string += "*" * self.width + "\n"
@@ -234,7 +233,7 @@ class ROIView(object):
         for image, roi_list in self:
             for roi in roi_list:
                 string += "{:<8}{:<8}{:<20}{:<40}{:<15}{:<15}{:<20}\n".format(
-                    roi.getId().getValue(), 
+                    roi.getId().getValue(),
                     image.getId(),
                     roi.getName().getValue(),
                     image.getName(),
@@ -244,7 +243,7 @@ class ROIView(object):
                     )
         string += "-" * self.width + "\n"
         return string
-    
+
     def __repr__(self):
         return str(self)
 
@@ -258,12 +257,12 @@ class OMEROConnection(object):
         self.user = self.configs['OMERO_{}_USER'.format(self.connect_with)]
         self.password = self.configs['OMERO_{}_PASSWORD'.format(self.connect_with)]
         self.port = self.configs['OMERO_{}_PORT'.format(self.connect_with)]
-        
+
     def __enter__(self):
         from omero.gateway import BlitzGateway  # @UnresolvedImport
         self.conn = BlitzGateway(
-            host=self.host, 
-            username=self.user, 
+            host=self.host,
+            username=self.user,
             passwd=self.password,
             port=self.port
             )
@@ -280,13 +279,13 @@ class OMEROConnection(object):
         self.updateService = self.conn.getUpdateService()
         self.roiService = self.conn.getRoiService()
         return self
-    
+
     def __exit__(self, exc_type, exc_value, traceback):  # @UnusedVariable
         self.conn._closeSession()
         if self.args.verbose:
             print_date('Connection closed.')
         self.connected = False
-        
+
     def list(self):
         """List images or ROIs
         
@@ -312,7 +311,7 @@ class OMEROConnection(object):
                 roi_view = ROIView(rois)
                 print roi_view
             return len(rois)
-        
+
     @property
     def projects(self):
         if self.args.project is not None:
@@ -320,7 +319,7 @@ class OMEROConnection(object):
             return projects
         else:
             return self.conn.listProjects(self.userId)
-        
+
     def datasets(self, project=None):
         """List the datasets associated with the current user
         
@@ -335,12 +334,12 @@ class OMEROConnection(object):
                 projects = self.conn.searchObjects(["Project"], project)
                 for p in projects:
                     datasets += p.listChildren()
-            else:  
+            else:
                 params = omero.sys.ParametersI()  # @UndefinedVariable
                 params.exp(self.userId)
                 datasets += self.conn.getObjects("Dataset", params=params)
         return datasets
-    
+
     def images(self, project=None, dataset=None):
         """The list of images associated with the current user
         
@@ -364,14 +363,14 @@ class OMEROConnection(object):
                 assert isinstance(self.args.image_id, int) or isinstance(self.args.image_id, long)
             except AssertionError:
                 print_date("Invalid type for image ID: {}".format(type(self.args.image_id)))
-                sys.exit(1)  
+                sys.exit(1)
             image = self.getImage(self.args.image_id)
             if image is not None:
                 images.append(image)
         elif self.args.image_name is not None:
             images = self.conn.searchObjects(["Image"], self.args.image_name)
         else:
-            if project is not None: # project specified
+            if project is not None:  # project specified
                 print_date("Searching for images in project '{}'".format(project))
                 # get all projects matching
                 projects = self.conn.searchObjects(["Project"], project)
@@ -386,11 +385,11 @@ class OMEROConnection(object):
                     print_date("Searching for images in dataset '{}'".format(dataset))
                     if dataset in datasets_in_projects.keys():
                         images += datasets_in_projects[dataset].listChildren()
-                else: # dataset not specified
+                else:  # dataset not specified
                     print_date("Searching for images in all {} datasets".format(len(datasets_in_projects)))
                     for dataset in datasets_in_projects.keys():
                         images += datasets_in_projects[dataset].listChildren()
-            else: # project not specified
+            else:  # project not specified
                 # dataset specified
                 if dataset is not None:
                     print_date("Searching for images in dataset '{}'".format(dataset))
@@ -404,7 +403,7 @@ class OMEROConnection(object):
                         images += dataset.listChildren()
         print_date("Found {} image(s).".format(len(images)))
         return images
-    
+
     def getImage(self, image_id):
         """Get the image with the image ID specified on the command line
         
@@ -413,7 +412,7 @@ class OMEROConnection(object):
         :rtype image: ``OMEROImage``
         """
         return self.conn.getObject("Image", image_id)
-    
+
     def rois(self, project=None, dataset=None):
         """Get an iterator over the ROIs associated with the specified image ID
         
@@ -430,11 +429,11 @@ class OMEROConnection(object):
         roi_count = sum(map(lambda r: len(r[1]), rois))
         print_date("Found {:,} ROIs in {:,} images.".format(roi_count, len(rois)))
         return rois
-    
+
     def getROIs(self, image_id):
         result = self.roiService.findByImage(image_id, None)
         return result.rois
-    
+
     def attachRois(self, omero_rois):
         """Attach the rois from the iterable"""
         non_rois = filter(lambda r: not isinstance(r, OMEROROI), omero_rois)
@@ -446,21 +445,21 @@ class OMEROConnection(object):
         for roi in omero_rois:
             self.saveRoi(roi)
         return 0
-    
+
     # save
     def saveRoi(self, roi):
         """Save the given ROI
         
         :param roi: an ROI object
         :type roi: `omero.model.Roi`
-        """ 
+        """
         import Ice
         try:
             self.updateService.saveObject(roi)
         except Ice.MemoryLimitException as e:  # @UndefinedVariable
             print_date(str(e))
             sys.exit(1)
-            
+
     # delete
     def deleteRoi(self, roi_id):
         """
@@ -470,13 +469,13 @@ class OMEROConnection(object):
         :type roi: `omero.model.Roi`
         """
         from omero.callbacks import CmdCallbackI  # @UnresolvedImport
-        
+
         handle = self.conn.deleteObjects("Roi", [roi_id], deleteAnns=True, deleteChildren=True)
         callback = CmdCallbackI(self.conn.c, handle)
-        
+
         while not callback.block(500):
             if self.args.verbose:
                 print_date(".", newline=False, incl_date=False)
                 time.sleep(2)
-        
+
         callback.close(True)
