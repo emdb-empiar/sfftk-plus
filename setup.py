@@ -11,7 +11,7 @@ setup(
       description="Backend toolkit for working with EMDB-SFF with respect to an OMERO server",
       license="Apache License",
       keywords="EMDB-SFF, SFF, segmentation",
-      install_requires=['sfftk', 'psycopg2', ],
+      install_requires=['sfftk', 'psycopg2==2.6', ],
       entry_points={
           'console_scripts': [
               'sffp = sfftkplus.sffplus:main',
