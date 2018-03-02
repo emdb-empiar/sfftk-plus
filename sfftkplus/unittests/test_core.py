@@ -141,6 +141,7 @@ class TestParser_createroi(unittest.TestCase):
         self.assertFalse(args.normals_off)
         self.assertIsNone(args.config_path)
         self.assertFalse(args.shipped_configs)
+        self.assertIsNone(args.quick_pick)
 
     def test_primary_descriptor(self):
         """Test specifying primary descriptor"""
@@ -179,6 +180,12 @@ class TestParser_createroi(unittest.TestCase):
         """Test image name root"""
         args, _ = parse_args(shlex.split('createroi file.sff -o file.roi -I emd_1234'))
         self.assertEqual(args.image_name_root, 'emd_1234')
+
+    def test_quick_pick(self):
+        """Test that we have right value for quick pick"""
+        quick_pick = _random_integer(start=1)
+        args, _ = parse_args(shlex.split('createroi file.sff -o file.roi --quick-pick {}'.format(quick_pick)))
+        self.assertEqual(args.quick_pick, quick_pick - 1)
 
     def test_mask_value(self):
         """Test specifying mask value"""
