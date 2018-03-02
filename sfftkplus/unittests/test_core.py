@@ -187,6 +187,13 @@ class TestParser_createroi(unittest.TestCase):
         args, _ = parse_args(shlex.split('createroi file.sff -o file.roi --quick-pick {}'.format(quick_pick)))
         self.assertEqual(args.quick_pick, quick_pick - 1)
 
+    def test_invalid_quick_pick_value(self):
+        """Test that a --quick-pick <= 0 terminates"""
+        args, _ = parse_args(shlex.split('createroi file.sff -o file.roi --quick-pick 0'))
+        self.assertIsNone(args)
+        args, _ = parse_args(shlex.split('createroi file.sff -o file.roi --quick-pick -1'))
+        self.assertIsNone(args)
+
     def test_mask_value(self):
         """Test specifying mask value"""
         mask_value = _random_integer()

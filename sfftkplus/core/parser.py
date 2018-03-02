@@ -518,9 +518,14 @@ def parse_args(_args):
             except AssertionError:
                 print_date("Non-integer for mask value")
                 return None, configs
+
         # quick pick values are 1-based (not 0-based)
         if args.quick_pick is not None:
-            args.quick_pick -= 1
+            if args.quick_pick <= 0:
+                print_date("Invalid value for --quick-pick. Should be 1-based value of item in list e.g. the value of 'a' in ['a', 'b'] is 1 (one).")
+                return None, configs
+            else:
+                args.quick_pick -= 1
     # attachroi
     elif args.subcommand == 'attachroi':
         # enforce local if specified
