@@ -142,6 +142,25 @@ class TestParser_createroi(unittest.TestCase):
         self.assertIsNone(args.config_path)
         self.assertFalse(args.shipped_configs)
         self.assertIsNone(args.quick_pick)
+        self.assertFalse(args.reset_ids)
+
+    def test_roi_file(self):
+        """Test that we can start with an ROI file"""
+        args, _ = parse_args(shlex.split('createroi file.roi -o new_file.roi -I emd_1234 --reset-ids'))
+        self.assertEqual(args.sff_file, 'file.roi')
+        self.assertEqual(args.output, 'new_file.roi')
+        self.assertEqual(args.image_name_root, 'emd_1234')
+        self.assertTrue(args.reset_ids)
+
+    def test_roi_file_reset_ids_image_name_root_together(self):
+        """Test that we ensure that if --reset-ids then --image-name-root must not be None"""
+        with self.assertRaises(ValueError):
+            parse_args(shlex.split('createroi file.roi --reset-ids -o new_file.roi'))
+
+        # self.assertEqual(args.sff_file, 'file.roi')
+        # self.assertTrue(args.reset_ids)
+        # self.assertEqual(args.image_name_root, 'emd_1234')
+        # self.assertEqual(args.output, 'new_file.roi')
 
     def test_primary_descriptor(self):
         """Test specifying primary descriptor"""

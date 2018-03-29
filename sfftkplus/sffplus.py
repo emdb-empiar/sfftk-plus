@@ -202,21 +202,48 @@ def handle_createroi(args, configs):
     :type config: ``sfftk.core.configs.Congif``
     :return int status: status
     """
-    import schema
     # convert an EMDB-SFF file to an ROI file
     if re.match(r'.*\.(sff|hff)$', args.sff_file, re.IGNORECASE):
+        import schema
+        if args.verbose:
+            print_date("Reading in EMDB-SFF file {}".format(args.sff_file))
         sff_seg = schema.SFFPSegmentation(args.sff_file)
+        # convert segments to VTK meshes
+        if args.verbose:
+                print_date("Converting EMDB-SFF segments to VTK meshes")
+        vtk_seg = sff_seg.as_vtk(args, configs)
+        # slice to get contours
+        if args.verbose:
+            print_date("Slicing segmentation to get ROI contours...")
+        vtk_seg.slice()
+        # convert to ROI using sfftkplus.schema.roi
+        if args.verbose:
+                print_date("Converting to ROI using roi.xsd...")
+        roi_seg = vtk_seg.as_roi(configs)
+        # export to file
+        if args.verbose:
+                print_date("Writing output to {}".format(args.output))
+        roi_seg.export(args.output)
+        if args.verbose:
+                print_date("Done")
+    elif re.match(r'.*\.roi$', args.sff_file, re.IGNORECASE):
+        from .formats import roi
+        if args.verbose:
+            print_date("Reading in ROI file {}".format(args.sff_file))
+        roi_seg = roi.ROISegmentation(args.sff_file)
+        if args.reset_ids:
+            if args.verbose:
+                print_date("Resetting IDs...")
+            roi_seg.header.reset_ids(args, configs)
+        # export to file
+        if args.verbose:
+            print_date("Writing output to {}".format(args.output))
+        roi_seg.export(args.output)
+        if args.verbose:
+            print_date("Done")
     else:
         print_date("Unsupported file type: {}".format(args.sff_file))
         return 1
-    # convert segments to VTK meshes
-    vtk_seg = sff_seg.as_vtk(args, configs)
-    # slice to get contours
-    vtk_seg.slice()
-    # convert to ROI using sfftkplus.schema.roi
-    roi_seg = vtk_seg.as_roi(configs)
-    # export to file
-    roi_seg.export(args.output)
     return 0
 
 def handle_view3d(args, configs):

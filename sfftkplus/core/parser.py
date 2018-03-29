@@ -316,22 +316,50 @@ add_args(local_or_remote, remote)
 # ===============================================================================
 createroi_parser = subparsers.add_parser('createroi', description="Create ROIs and write to file",
                                          help="create ROIs and write to file")
-createroi_parser.add_argument('sff_file', help="file containing segmentations to be converted into ROIs")
 add_args(createroi_parser, config_path)
 add_args(createroi_parser, shipped_configs)
 createroi_parser.add_argument(*output['args'], **output['kwargs'])
-createroi_parser.add_argument(*primary_descriptor['args'], **primary_descriptor['kwargs'])
 createroi_parser.add_argument(*verbose['args'], **verbose['kwargs'])
+image_name_root_or_xyz_createroi_parser = createroi_parser.add_mutually_exclusive_group()
+
+image_name_root_or_xyz_createroi_parser.add_argument('-I', '--image-name-root',
+                              help="the root name of the file in OMERO; e.g. 'emd_1080-top.map' has image root 'emd_1080'")
+image_name_root_or_xyz_createroi_parser.add_argument(
+    '--top-front-right',
+    nargs=3,
+    type=int,
+    metavar=('TOP-IMAGE-ID', 'FRONT-IMAGE-ID', 'RIGHT-IMAGE-ID'),
+    help="explicit image IDs for top, front and right (side) perspectives, respectively"
+)
+createroi_parser.add_argument('-q', '--quick-pick', type=int,
+                              help="if multiple IDs are found pick the one at the specified position; uses 1-based indexing for natural positioning [default: None]")
+createroi_parser.add_argument(
+    'sff_file',
+    help="file containing segmentations to be converted into ROIs; this could also be an ROI file (*.roi) for "
+         "modifying the image ids"
+)
+# # parser for emdb_sff files
+# sff_file_createroi_parser = createroi_parser.add_argument_group(
+#     title="EMDB-SFF file provided",
+#     description="Starting with a EMDB-SFF file, generate the ROIs using VTK"
+# )
+createroi_parser.add_argument(*primary_descriptor['args'], **primary_descriptor['kwargs'])
 createroi_parser.add_argument(*transparency['args'], **transparency['kwargs'])
 # createroi_parser.add_argument('-s', '--smooth', action='store_true', default=False, help="attempt to smoothen mesh [default: False]")
 # createroi_parser.add_argument('-i', '--smooth-iterations', default=50, type=int, help="the number of smoothing iterations [default: 50]")
-createroi_parser.add_argument('-I', '--image-name-root',
-                              help="the root name of the file in OMERO; e.g. 'emd_1080-top.map' has image root 'emd_1080'")
 createroi_parser.add_argument(*mask_value['args'], **mask_value['kwargs'])
 createroi_parser.add_argument(*normals_off['args'], **normals_off['kwargs'])
-createroi_parser.add_argument('-q', '--quick-pick', type=int,
-                              help="if multiple IDs are found pick the one at the specified position; uses 1-based indexing for natural positioning [default: None]")
-
+# parser for roi files
+# roi_file_createroi_parser = createroi_parser.add_argument_group(
+#     title="ROI file provided",
+#     description="Starting with an ROI file (*.roi) make some modifications without using VTK"
+# )
+createroi_parser.add_argument(
+    '-i', '--reset-ids',
+    action='store_true',
+    default=False,
+    help="modify the image IDs based on a fresh search [default: False]"
+)
 # ===============================================================================
 # attachroi subparser
 # ===============================================================================
@@ -526,6 +554,15 @@ def parse_args(_args):
                 return None, configs
             else:
                 args.quick_pick -= 1
+
+        # reset ids must be accompanied by either -I or --top-front-right
+        if args.reset_ids:
+            try:
+                assert args.image_name_root is not None or args.top_front_right is not None
+            except AssertionError:
+                raise ValueError("Resetting IDs requires that either -I/--image-name-root or --top-right-front is set")
+                return None, configs
+
     # attachroi
     elif args.subcommand == 'attachroi':
         # enforce local if specified

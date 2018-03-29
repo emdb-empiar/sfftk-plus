@@ -273,12 +273,10 @@ class ROIHeader(Header):
                 self._top_id = None
                 self._front_id = None
                 self._right_id = None
-    
-    @classmethod
-    def from_vtk(cls, vtk_args, configs):
-        obj = cls()
+
+    def reset_ids(self, args, configs):
         try:
-            if vtk_args.image_name_root is not None:
+            if args.image_name_root is not None:
                 cw = configs['CONNECT_WITH'] # either LOCAL or REMOTE
                 # server settings
                 conn_str = "dbname='{}' user='{}' password='{}' host='{}' port='{}'".format(
@@ -287,24 +285,29 @@ class ROIHeader(Header):
                     configs['IMAGE_DB_{}_PASS'.format(cw)],
                     configs['IMAGE_DB_{}_HOST'.format(cw)],
                     configs['IMAGE_DB_{}_PORT'.format(cw)],
-                    ) 
+                    )
                 conn = psycopg2.connect(conn_str)
                 cur = conn.cursor()
-                obj.top_id = get_image_id(cur, vtk_args.image_name_root, 'top', quick_pick=vtk_args.quick_pick)
-                obj.front_id = get_image_id(cur, vtk_args.image_name_root, 'front', quick_pick=vtk_args.quick_pick)
-                obj.right_id = get_image_id(cur, vtk_args.image_name_root, 'side', quick_pick=vtk_args.quick_pick)
+                self.top_id = get_image_id(cur, args.image_name_root, 'top', quick_pick=args.quick_pick)
+                self.front_id = get_image_id(cur, args.image_name_root, 'front', quick_pick=args.quick_pick)
+                self.right_id = get_image_id(cur, args.image_name_root, 'side', quick_pick=args.quick_pick)
                 # sanity check
-                assert obj.top_id != obj.front_id and obj.right_id != obj.front_id
+                assert self.top_id != self.front_id and self.right_id != self.front_id
             else:
                 print_date("-I/--image-name-root not set. Image IDs will be excluded.")
-                obj.top_id = None
-                obj.front_id = None
-                obj.right_id = None
+                self.top_id = None
+                self.front_id = None
+                self.right_id = None
         except AssertionError:
             print_date("Invalid image IDs or image IDs not found. Did you use -I/--image-name-root option?")
-            obj.top_id = None
-            obj.front_id = None
-            obj.right_id = None
+            self.top_id = None
+            self.front_id = None
+            self.right_id = None
+
+    @classmethod
+    def from_vtk(cls, vtk_args, configs):
+        obj = cls()
+        obj.reset_ids(vtk_args, configs)
         return obj
     
     @property
@@ -361,21 +364,17 @@ class ROISegmentation(Segmentation):
     def __init__(self, fn=None, *args, **kwargs):
         self._fn = fn
         if fn:
-            self._segmentation = roireader.get_data(fn, *args, **kwargs)
-            self._header = ROIHeader(self._segmentation)
-            self._segments = map(ROISegment, self._segmentation.segment)
+            self.roi_seg = roireader.get_data(fn, *args, **kwargs)
+            self._header = ROIHeader(self.roi_seg)
+            self._segments = map(ROISegment, self.roi_seg.segment)
             self._oriented_segments, self._segment_colours = self._compute_oriented_segments()
-            
     @classmethod
     def from_vtk(cls, vtk_seg, configs):
         obj = cls()
         obj.header = ROIHeader.from_vtk(vtk_seg.vtk_args, configs)
         obj.segments = map(ROISegment.from_vtk, vtk_seg.segments)
+        obj.convert()
         return obj
-    
-    @classmethod
-    def from_roi(cls, r):
-        pass
     
     @property
     def header(self):
@@ -439,8 +438,9 @@ class ROISegmentation(Segmentation):
         return omero_rois
     
     def export(self, fn, *args, **kwargs):
-        self.convert()
+        # self.convert()
         with open(fn, 'w') as f:
+            self.roi_seg.set_image_ids(self.header.convert())
             version = kwargs.get('version') if 'version' in kwargs else "1.0"
             encoding = kwargs.get('encoding') if 'encoding' in kwargs else "UTF-8"
             f.write('<?xml version="{}" encoding="{}"?>\n'.format(version, encoding))
