@@ -291,11 +291,17 @@ class VTKMesh(vtk.vtkPolyData):
         smoothedMesh.SetNumberOfIterations(200)
         smoothedMesh.Update()
         smoothedMeshOutput = smoothedMesh.GetOutput()
+        # triangle strips
+        triangleStrips = vtk.vtkStripper()
+        triangleStrips.SetInputData(smoothedMeshOutput)
+        triangleStrips.SetMaximumLength(1000)
+        triangleStrips.Update()
+        triangleStripsOutput = triangleStrips.GetOutput()
         # finally set things
         if not args.normals_off:
             # normals
             normals = vtk.vtkPolyDataNormals()
-            normals.SetInputData(smoothedMeshOutput)
+            normals.SetInputData(triangleStripsOutput)
     #         normals.ComputeCellNormalsOn()
             normals.ConsistencyOn()
             normals.AutoOrientNormalsOn()
@@ -310,89 +316,9 @@ class VTKMesh(vtk.vtkPolyData):
             vtkmesh.GetPointData().SetNormals(normalsOutput.GetPointData().GetNormals())
             return vtkmesh
         else:
-            vtkmesh.SetPoints(smoothedMeshOutput.GetPoints())
-            vtkmesh.SetPolys(smoothedMeshOutput.GetPolys())
+            vtkmesh.SetPoints(triangleStripsOutput.GetPoints())
+            vtkmesh.SetPolys(triangleStripsOutput.GetPolys())
             return vtkmesh
-
-#     @classmethod
-#     def from_contours(cls, contours, colour, args):
-#         """Initialiase a VTKMesh object from a ``sfftk.schema.SFFContourList``
-#
-#         :param contours: an iterable of contours
-#         :type contours: ``sfftk.schema.SFFContourList``
-#         :param colour: the segment colour
-#         :type colour: ``sfftk.schema.SFFColour``
-#         :param args: parsed arguments
-#         :type args: ``argparse.Namespace``
-#         :return vtkmesh: an VTKMesh object
-#         :rtype vtkmesh: ``VTKMesh``
-#         """
-#         vtkmesh = cls(colour, args)
-#         # pack the contours as vertices and polygons
-#         vertex_id = 0
-#         vertices = dict()
-#         polygons = list()
-#         for contour in contours:
-#             polygon = list()
-#             for point in contour.points:
-#                 vertices[vertex_id] = point.value
-#                 polygon.append(vertex_id)
-#                 vertex_id += 1
-#             polygons.append(polygon)
-#         # PROTOCOL
-#         # create a vtkAppendPolyData object to hold all the vtkPolyData objects
-#         # build each contour as a vtkPolyData and append
-#         # assign points and polys to self
-#         appendFilter = vtk.vtkAppendPolyData()
-#         for polygon in polygons:
-#             if not polygon:  # sometimes we have empty cell
-#                 continue
-#             points = vtk.vtkPoints()
-#             cells = vtk.vtkCellArray()
-#             # init
-#             points.SetNumberOfPoints(len(polygon) + 1)  # +1 because we close the cell
-#             cells.Allocate(1, len(polygon) + 1)
-#             cells.InsertNextCell(len(polygon) + 1)
-#             # add points
-#             for i in xrange(len(polygon)):
-#                 points.SetPoint(i, *vertices[polygon[i]])
-#                 cells.InsertCellPoint(i)
-#             # close the cells
-#             points.SetPoint(i + 1, *vertices[polygon[i]])
-#             cells.InsertCellPoint(i + 1)
-#             #  make a polydata object from these primitives
-#             poly = vtk.vtkPolyData()
-#             poly.Initialize()
-#             poly.SetPolys(cells)
-#             poly.SetPoints(points)
-#             # append
-#             appendFilter.AddInputData(poly)
-#         appendFilter.Update()
-#         appendOutput = appendFilter.GetOutput()
-#         # clean
-#         cleaned = vtk.vtkCleanPolyData()
-#         cleaned.SetInputData(appendOutput)
-#         cleaned.Update()
-#         cleanedOutput = cleaned.GetOutput()
-#         # depthsort
-#         depthsort = vtk.vtkDepthSortPolyData()
-#         depthsort.SetInputData(cleanedOutput)
-#         depthsort.SetVector(0, 0, 1)
-#         depthsort.SetOrigin(0, 0, 0)
-#         depthsort.SetDirectionToSpecifiedVector()
-#         depthsort.SetDepthSortModeToParametricCenter()
-#         depthsort.Update()
-#         depthsortOutput = depthsort.GetOutput()
-#         # set primitives
-#         vtkmesh.SetPoints(depthsortOutput.GetPoints())
-#         vtkmesh.SetLines(depthsortOutput.GetPolys())
-#         # convert object
-#         C2S = ContoursToSurface()
-#         mesh = C2S.run(vtkmesh)
-#         # set primitives
-#         vtkmesh.SetPoints(mesh.GetPoints())
-#         vtkmesh.SetPolys(mesh.GetPolys())
-#         return vtkmesh
 
     @classmethod
     def from_shape(cls, shape, colour, args, transform, resolution=20):
@@ -513,17 +439,13 @@ class VTKMeshes(Mesh):
         # transforms
         if 'transforms' in kwargs_:
             self._transforms = kwargs_['transforms']
+        if 'lattice' in kwargs_:
+            self._lattice = kwargs_['lattice']
         if self.primary_descriptor == "meshList":
             for mesh in self._sff_segment.meshes:
                 self._vtk_meshes.append(
                     VTKMesh.from_mesh(mesh, self.colour, self._vtk_args)
                     )
-#         elif self.primary_descriptor == "contourList":
-#             contours = self._sff_segment.contours
-#             if contours:
-#                 self._vtk_meshes.append(
-#                     VTKMesh.from_contours(contours, self.colour, self._vtk_args)
-#                     )
         elif self.primary_descriptor == "shapePrimitiveList":
             for shape in self._sff_segment.shapes:
                 transform = self._transforms[shape.transformId]
@@ -531,9 +453,8 @@ class VTKMeshes(Mesh):
                     VTKMesh.from_shape(shape, self.colour, self._vtk_args, transform)
                     )
         elif self.primary_descriptor == "threeDVolume":
-            mask = self._sff_segment.mask
             self._vtk_meshes.append(
-                VTKMesh.from_volume(mask, self.colour, self._vtk_args)
+                VTKMesh.from_volume(self._lattice, self.colour, self._vtk_args)
                 )
 
     def __iter__(self):
@@ -709,7 +630,7 @@ class VTKSegment(Segment):
         """
         :TODO: currently only handles only RGBA colours
         """
-        colour = list(self._sff_segment.colour.rgba.value)
+        colour = list(self._sff_segment.colour.value)
         if colour[0] is not None and colour[1] is not None and colour[2] is not None and colour[3] is not None:
             colour[3] = self._vtk_args.transparency
             return colour
@@ -756,30 +677,50 @@ class VTKSegmentation(Segmentation):
         self._segments = list()
         self._sliced_segments = list()
         if self._vtk_args.primary_descriptor == "threeDVolume":
+            self._lattices = dict()
+            for lattice in self._sff_seg.lattices:
+                self._lattices[lattice.id] = lattice
+                self._lattices[lattice.id].decode()
+            for segment in self._sff_seg.segments:
+                lattice = self._lattices[segment.volume.latticeId]
+                lattice_data = lattice.data
+                # new mask
+                new_simplified_mask = numpy.ndarray(lattice_data.shape, dtype=int)
+                new_simplified_mask[:,:,:] = 0
+                # only the parts for this segment
+                new_simplified_mask = (lattice_data == int(segment.volume.value)) * int(segment.volume.value)
+                self._segments.append(
+                    VTKSegment(
+                        segment, self._vtk_args,
+                        transforms=self._sff_seg.transforms,
+                        lattice=new_simplified_mask
+                    )
+                )
+
             # if this is segmentation has threeDVolumes...
             # we need to build a mask for each segment
-            volume = self._sff_seg.segments[0].volume
-            with h5py.File(os.path.join(self._sff_seg.filePath, volume.file)) as f:
-                try:
-                    # segger HDF5
-                    r_ids = f['/region_ids'].value  # placed at the top to fail fast if an EMDB map
-                    p_ids = f['/parent_ids'].value
-                    mask = f['/mask'].value
-                    c_ids = f['/region_colors'].value
-                    r_p_zip = zip(r_ids, p_ids)
-                    r_c_zip = dict(zip(r_ids, c_ids))
-                    simplified_mask, segment_ids = simplify_mask(mask, r_ids, r_p_zip, r_c_zip)
-                    for segment in self._sff_seg.segments:
-                        if segment.id in segment_ids:
-                            new_simplified_mask = numpy.ndarray(mask.shape, dtype=int)
-                            new_simplified_mask = 0
-                            new_simplified_mask = (simplified_mask == segment.id) * segment.id
-                            segment.mask = new_simplified_mask  # set the empty 'mask' attribute
-                            self._segments.append(VTKSegment(segment, self._vtk_args))
-                except KeyError:  # EMDB map HDF5
-                    for segment in self._sff_seg.segments:
-                        segment.mask = f['/mask'].value
-                        self._segments.append(VTKSegment(segment, self._vtk_args))
+            # volume = self._sff_seg.segments[0].volume
+            # with h5py.File(os.path.join(self._sff_seg.filePath, volume.file)) as f:
+            #     try:
+            #         # segger HDF5
+            #         r_ids = f['/region_ids'].value  # placed at the top to fail fast if an EMDB map
+            #         p_ids = f['/parent_ids'].value
+            #         mask = f['/mask'].value
+            #         c_ids = f['/region_colors'].value
+            #         r_p_zip = zip(r_ids, p_ids)
+            #         r_c_zip = dict(zip(r_ids, c_ids))
+            #         simplified_mask, segment_ids = simplify_mask(mask, r_ids, r_p_zip, r_c_zip)
+            #         for segment in self._sff_seg.segments:
+            #             if segment.id in segment_ids:
+            #                 new_simplified_mask = numpy.ndarray(mask.shape, dtype=int)
+            #                 new_simplified_mask = 0
+            #                 new_simplified_mask = (simplified_mask == segment.id) * segment.id
+            #                 segment.mask = new_simplified_mask  # set the empty 'mask' attribute
+            #                 self._segments.append(VTKSegment(segment, self._vtk_args))
+            #     except KeyError:  # EMDB map HDF5
+            #         for segment in self._sff_seg.segments:
+            #             segment.mask = f['/mask'].value
+            #             self._segments.append(VTKSegment(segment, self._vtk_args))
         else:
             self._segments = map(lambda s: VTKSegment(s, self._vtk_args, transforms=self._sff_seg.transforms), self._sff_seg.segments)
 

@@ -8,14 +8,13 @@ sfftkplus.sffplus
 
 from __future__ import division
 
-from getpass import getpass
 import os
-import re
 import sys
 
-from sfftk.core.print_tools import print_date, print_static
-from sfftk.sff import _module_test_runner, _testcase_test_runner, _discover_test_runner
+import re
 
+from sfftk.core.print_tools import print_date, print_static
+from sfftk.sff import _module_test_runner, _discover_test_runner
 
 __author__ = "Paul K. Korir, PhD"
 __email__ = "pkorir@ebi.ac.uk, paul.korir@gmail.com"
@@ -90,6 +89,7 @@ def get_image_ids(roi_seg, args):
         raise ValueError("No image identifiers specified. Aborting...")
     return image_ids
 
+
 def handle_list(args, configs):
     """
     Handle `list` subcommand
@@ -104,6 +104,7 @@ def handle_list(args, configs):
     with OMEROConnection(args, configs) as connection:
         connection.list()
     return 0
+
 
 def handle_attachroi(args, configs):
     """
@@ -163,6 +164,7 @@ def handle_attachroi(args, configs):
                 continue  # non-fatal
     return 0
 
+
 def handle_delroi(args, configs):
     """
     Handle `delroi` subcommand
@@ -192,6 +194,7 @@ def handle_delroi(args, configs):
             print_date("Please specify an ROI ID. Search using 'sffp list --rois [--image-id <image_id>]'")
     return 0
 
+
 def handle_createroi(args, configs):
     """
     Handle `createroi` subcommand
@@ -210,7 +213,7 @@ def handle_createroi(args, configs):
         sff_seg = schema.SFFPSegmentation(args.sff_file)
         # convert segments to VTK meshes
         if args.verbose:
-                print_date("Converting EMDB-SFF segments to VTK meshes")
+            print_date("Converting EMDB-SFF segments to VTK meshes")
         vtk_seg = sff_seg.as_vtk(args, configs)
         # slice to get contours
         if args.verbose:
@@ -218,14 +221,14 @@ def handle_createroi(args, configs):
         vtk_seg.slice()
         # convert to ROI using sfftkplus.schema.roi
         if args.verbose:
-                print_date("Converting to ROI using roi.xsd...")
+            print_date("Converting to ROI using roi.xsd...")
         roi_seg = vtk_seg.as_roi(configs)
         # export to file
         if args.verbose:
-                print_date("Writing output to {}".format(args.output))
+            print_date("Writing output to {}".format(args.output))
         roi_seg.export(args.output)
         if args.verbose:
-                print_date("Done")
+            print_date("Done")
     elif re.match(r'.*\.roi$', args.sff_file, re.IGNORECASE):
         from .formats import roi
         if args.verbose:
@@ -245,6 +248,7 @@ def handle_createroi(args, configs):
         print_date("Unsupported file type: {}".format(args.sff_file))
         return 1
     return 0
+
 
 def handle_view3d(args, configs):
     """
@@ -269,6 +273,7 @@ def handle_view3d(args, configs):
     vtk_seg.render()
     return 0
 
+
 def handle_export(args, configs):
     """
     Handle `export` subcommand
@@ -291,6 +296,7 @@ def handle_export(args, configs):
     out_fn = os.path.basename(".".join(args.sff_file.split('.')[:-1]))
     vtk_seg.export(out_fn, args)
     return 0
+
 
 def handle_configs(args, configs):
     """
@@ -319,6 +325,7 @@ def handle_configs(args, configs):
         return clear_configs(args, configs)
     return 0
 
+
 def handle_tests(args, configs):
     """Handle `test` subcommand
     
@@ -329,13 +336,13 @@ def handle_tests(args, configs):
     :return int status: status
     """
     if isinstance(args.tool, str):
-#         from .unittests import test_main
-#         _module_test_runner(test_main, args)
+        #         from .unittests import test_main
+        #         _module_test_runner(test_main, args)
         _discover_test_runner("sfftkplus.unittests", args)
     else:
-#         if 'main' in args.tool:
-#             from .unittests import test_main
-#             _module_test_runner(test_main, args)
+        #         if 'main' in args.tool:
+        #             from .unittests import test_main
+        #             _module_test_runner(test_main, args)
         if 'core' in args.tool:
             from .unittests import test_core
             _module_test_runner(test_core, args)
@@ -352,6 +359,7 @@ def handle_tests(args, configs):
             from .unittests import test_omero
             _module_test_runner(test_omero, args)
     return 0
+
 
 def main():
     try:
@@ -382,6 +390,7 @@ def main():
         return 0
 
     return 0
+
 
 if __name__ == "__main__":
     sys.exit(main())
