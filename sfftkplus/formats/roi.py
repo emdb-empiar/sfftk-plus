@@ -127,36 +127,10 @@ class ROIContours(Contours):
         assert isinstance(value, list)
         self._z_contours = value
 
-    @staticmethod
-    def point_reduce(contours):
-        point_reduced_contours = list()
-        for contour in contours:
-            point_reduced_contour = list()
-            for point_id in sorted(contour.keys()):  # sort to get them in the right order
-                x, y, z = contour[point_id]
-                point_reduced_contour.append((round(x, 2), round(y, 2), round(z, 2)))
-                # point_reduced_contour.append((int(x), int(y), int(z)))
-            # make a dictionary with unique points
-            point_reduced_contour_set = set()
-            point_reduced_contour_dict = dict()
-            point_id = 0
-            for point_reduced in point_reduced_contour:
-                if point_reduced not in point_reduced_contour_set:
-                    point_reduced_contour_set.add(point_reduced)
-                    point_reduced_contour_dict[point_id] = point_reduced
-                    point_id += 1
-            # point_reduced_contour_dict = dict(zip(range(len(point_reduced_contour)), tuple(point_reduced_contour)))
-            point_reduced_contours.append(point_reduced_contour_dict)
-        return point_reduced_contours
-
     def convert(self, args, configs):
         # x contours
         xContours = roi.orientedContourType()
         # print(self.x_contours)
-        if args.point_reduce:
-            if args.verbose:
-                print_date("Performing point reduction for x-contours...")
-            self.x_contours = self.point_reduce(self.x_contours)
         for contour in self.x_contours:  # for each contour
             K = roi.contourType()
             for point_id, point in contour.iteritems():  # for each point in the contour
@@ -170,10 +144,6 @@ class ROIContours(Contours):
             xContours.add_contour(K)
         # y contours
         yContours = roi.orientedContourType()
-        if args.point_reduce:
-            if args.verbose:
-                print_date("Performing point reduction for y-contours...")
-            self.y_contours = self.point_reduce(self.y_contours)
         for contour in self.y_contours:
             K = roi.contourType()
             for point_id, point in contour.iteritems():
@@ -187,10 +157,6 @@ class ROIContours(Contours):
             yContours.add_contour(K)
         # z contours
         zContours = roi.orientedContourType()
-        if args.point_reduce:
-            if args.verbose:
-                print_date("Performing point reduction for z-contours...")
-            self.z_contours = self.point_reduce(self.z_contours)
         for contour in self.z_contours:
             K = roi.contourType()
             for point_id, point in contour.iteritems():

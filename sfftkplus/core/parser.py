@@ -360,12 +360,7 @@ createroi_parser.add_argument(
     default=False,
     help="modify the image IDs based on a fresh search [default: False]"
 )
-createroi_parser.add_argument(
-    '--point-reduce',
-    action='store_true',
-    default=False,
-    help="reduce the number and precision of points; useful to make smaller JSON ROI files [default: False]"
-)
+
 # ===============================================================================
 # attachroi subparser
 # ===============================================================================
