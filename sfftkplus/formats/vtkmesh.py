@@ -24,16 +24,18 @@ and limitations under the License.
 from __future__ import division
 
 import math
+import multiprocessing
 import os
 from random import random
 
-import h5py
 import numpy
-from sfftk.core.print_tools import print_date
-from sfftk.readers.segreader import get_root
-from sfftkplus.formats.base import Segmentation, Header, Segment, Contours, Mesh
 import vtk
 
+from sfftk import schema
+from sfftk.core.print_tools import print_date
+from sfftk.core.utils import parallelise
+from sfftk.readers.segreader import get_root
+from sfftkplus.formats.base import Segmentation, Header, Segment, Contours, Mesh
 
 __author__ = "Paul K. Korir, PhD"
 __email__ = "pkorir@ebi.ac.uk, paul.korir@gmail.com"
@@ -85,13 +87,13 @@ def simplify_mask(mask, r_ids, r_p_zip, replace=True):
             # Because parent_ids are non-overlapping (i.e. no region_id has two parent_ids)
             # we can do successive summation instead of assignments.
             full_op = 'simplified_mask += (' + comp + ') * %s' % parent_id
-            exec(full_op)
+            exec (full_op)
     else:
         simplified_mask = mask
 
     segment_ids = root_parent_id_group.keys()
 
-#     segment_colors = [r_c_zip[s] for s in segment_ids]
+    #     segment_colors = [r_c_zip[s] for s in segment_ids]
 
     return simplified_mask, segment_ids
 
@@ -251,8 +253,8 @@ class VTKMesh(vtk.vtkPolyData):
 
         vol = vtk.vtkImageData()
         z_size, y_size, x_size = mask.shape
-        vol.SetExtent(0, x_size - 1, 0, y_size - 1 , 0, z_size - 1)
-        vtkmesh.vol_extent = 0, x_size - 1, 0, y_size - 1 , 0, z_size - 1
+        vol.SetExtent(0, x_size - 1, 0, y_size - 1, 0, z_size - 1)
+        vtkmesh.vol_extent = 0, x_size - 1, 0, y_size - 1, 0, z_size - 1
         vol.SetOrigin(0.0, 0.0, 0.0)
         sp_x = 1.0  # /(x_size - 1)
         sp_y = 1.0  # /(y_size - 1)
@@ -302,7 +304,7 @@ class VTKMesh(vtk.vtkPolyData):
             # normals
             normals = vtk.vtkPolyDataNormals()
             normals.SetInputData(triangleStripsOutput)
-    #         normals.ComputeCellNormalsOn()
+            #         normals.ComputeCellNormalsOn()
             normals.ConsistencyOn()
             normals.AutoOrientNormalsOn()
             normals.ComputePointNormalsOn()
@@ -310,7 +312,7 @@ class VTKMesh(vtk.vtkPolyData):
             normals.SetFeatureAngle(240.0)
             normals.Update()
             normalsOutput = normals.GetOutput()
-#             print vtkmesh_n.GetPointData().GetNormals()
+            #             print vtkmesh_n.GetPointData().GetNormals()
             vtkmesh.SetPoints(normals.GetOutput().GetPoints())
             vtkmesh.SetPolys(normals.GetOutput().GetPolys())
             vtkmesh.GetPointData().SetNormals(normalsOutput.GetPointData().GetNormals())
@@ -389,7 +391,6 @@ class VTKMesh(vtk.vtkPolyData):
         transformFilter.Update()
         return transformFilter.GetOutput()
 
-
     def render(self, renderer):
         """
         Render the mesh
@@ -398,7 +399,11 @@ class VTKMesh(vtk.vtkPolyData):
         :type renderer: `vtk.vtkRenderer`
         """
         assert isinstance(renderer, vtk.vtkRenderer)
+        actor = self.make_actor()
+        renderer.AddActor(actor)
+        return renderer
 
+    def make_actor(self):
         self.mapper = vtk.vtkOpenGLPolyDataMapper()
         # normals
         normals = vtk.vtkPolyDataNormals()
@@ -412,11 +417,11 @@ class VTKMesh(vtk.vtkPolyData):
         self.actor = vtk.vtkOpenGLActor()
         self.actor.SetMapper(self.mapper)
         self.actor.GetProperty().SetColor(self.colour)
-        if self._vtk_args.wireframe:
+        if self.vtk_args.wireframe:
             self.actor.GetProperty().SetRepresentationToWireframe()
         if self.alpha:
             self.actor.GetProperty().SetOpacity(self.alpha)
-        if self._vtk_args.view_edges:
+        if self.vtk_args.view_edges:
             self.actor.GetProperty().EdgeVisibilityOn()
             self.actor.GetProperty().SetEdgeColor(*self.edge_colour)
         # lighting and shading
@@ -424,10 +429,9 @@ class VTKMesh(vtk.vtkPolyData):
         self.actor.GetProperty().SetDiffuse(0.7)
         self.actor.GetProperty().SetSpecular(0.5)
         self.actor.GetProperty().SetSpecularPower(40)
-#         self.actor.GetProperty().BackfaceCullingOn()
-#         self.actor.GetProperty().FrontfaceCullingOn()
-        renderer.AddActor(self.actor)
-        return renderer
+        self.actor.GetProperty().BackfaceCullingOn()
+        self.actor.GetProperty().FrontfaceCullingOn()
+        return self.actor
 
 
 class VTKMeshes(Mesh):
@@ -445,23 +449,26 @@ class VTKMeshes(Mesh):
             for mesh in self._sff_segment.meshes:
                 self._vtk_meshes.append(
                     VTKMesh.from_mesh(mesh, self.colour, self._vtk_args)
-                    )
+                )
         elif self.primary_descriptor == "shapePrimitiveList":
             for shape in self._sff_segment.shapes:
                 transform = self._transforms[shape.transformId]
                 self._vtk_meshes.append(
                     VTKMesh.from_shape(shape, self.colour, self._vtk_args, transform)
-                    )
+                )
         elif self.primary_descriptor == "threeDVolume":
             self._vtk_meshes.append(
                 VTKMesh.from_volume(self._lattice, self.colour, self._vtk_args)
-                )
+            )
 
     def __iter__(self):
         return iter(self._vtk_meshes)
 
     def __len__(self):
         return len(self._vtk_meshes)
+
+    def __getitem__(self, index):
+        return self._vtk_meshes[index]
 
     @property
     def primary_descriptor(self):
@@ -488,7 +495,7 @@ class VTKContours(Contours):
                 math.floor(self.Xmin),
                 math.floor(self.Ymin),
                 math.floor(self.Zmin),
-                )
+            )
             d_hat = [0, 0, 0]
             d_hat[self._axes.index(d)] = 1
             self.__getattribute__('{}_plane'.format(d)).SetNormal(*d_hat)
@@ -592,7 +599,7 @@ class VTKContours(Contours):
             self._vtk_args.x_contours,
             self._vtk_args.y_contours,
             self._vtk_args.z_contours
-            ]):
+        ]):
             _d = list()
             if self._vtk_args.all_contours:
                 _d = ['x', 'y', 'z']
@@ -636,7 +643,8 @@ class VTKSegment(Segment):
             return colour
         else:
             colour = random(), random(), random(), 1
-            print_date("Warning: random colour {} for segment {}".format(tuple(map(lambda x: round(x, 4), colour)), self._sff_segment.id))
+            print_date("Warning: random colour {} for segment {}".format(tuple(map(lambda x: round(x, 4), colour)),
+                                                                         self._sff_segment.id))
             return colour
 
     @property
@@ -654,10 +662,16 @@ class VTKSegment(Segment):
     def render(self, renderer):
         for mesh in self.meshes:
             renderer = mesh.render(renderer)
-        if any([self._vtk_args.all_contours, self._vtk_args.x_contours, self._vtk_args.y_contours, self._vtk_args.z_contours]):
+        if any([self._vtk_args.all_contours, self._vtk_args.x_contours, self._vtk_args.y_contours,
+                self._vtk_args.z_contours]):
             for contour_set in self.contours:
                 renderer = contour_set.render(renderer)
         return renderer
+
+    def append_meshes(self, appender):
+        for mesh in self.meshes:
+            appender.AddInputData(mesh)
+        return appender
 
 
 class VTKHeader(Header):
@@ -678,17 +692,31 @@ class VTKSegmentation(Segmentation):
         self._sliced_segments = list()
         if self._vtk_args.primary_descriptor == "threeDVolume":
             self._lattices = dict()
-            for lattice in self._sff_seg.lattices:
-                self._lattices[lattice.id] = lattice
-                self._lattices[lattice.id].decode()
+            # decode lattices in parallel
+            if args.verbose:
+                print_date("Decoding lattices in parallel...")
+            lattices = parallelise(
+                self._sff_seg.lattices,
+                target=schema.decode_lattice,
+            )
+            # reconstitute into a dict
+            self._lattices = dict(zip(map(lambda l: l.id, lattices), lattices))
+            # now we have the lattices decoded into 3D volumes, we need to compute the surfaces for each
             for segment in self._sff_seg.segments:
                 lattice = self._lattices[segment.volume.latticeId]
-                lattice_data = lattice.data
-                # new mask
-                new_simplified_mask = numpy.ndarray(lattice_data.shape, dtype=int)
-                new_simplified_mask[:,:,:] = 0
-                # only the parts for this segment
-                new_simplified_mask = (lattice_data == int(segment.volume.value)) * int(segment.volume.value)
+                if lattice.is_binary:
+                    if args.verbose:
+                        print_date("Binary lattice")
+                    new_simplified_mask = lattice.data
+                else:
+                    lattice_data = lattice.data
+                    if args.verbose:
+                        print_date("Non-binary lattice")
+                    # new mask
+                    new_simplified_mask = numpy.ndarray(lattice_data.shape, dtype=int)
+                    new_simplified_mask[:,:,:] = 0
+                    # only the parts for this segment
+                    new_simplified_mask = (lattice_data == int(segment.volume.value)) * int(segment.volume.value)
                 self._segments.append(
                     VTKSegment(
                         segment, self._vtk_args,
@@ -696,33 +724,9 @@ class VTKSegmentation(Segmentation):
                         lattice=new_simplified_mask
                     )
                 )
-
-            # if this is segmentation has threeDVolumes...
-            # we need to build a mask for each segment
-            # volume = self._sff_seg.segments[0].volume
-            # with h5py.File(os.path.join(self._sff_seg.filePath, volume.file)) as f:
-            #     try:
-            #         # segger HDF5
-            #         r_ids = f['/region_ids'].value  # placed at the top to fail fast if an EMDB map
-            #         p_ids = f['/parent_ids'].value
-            #         mask = f['/mask'].value
-            #         c_ids = f['/region_colors'].value
-            #         r_p_zip = zip(r_ids, p_ids)
-            #         r_c_zip = dict(zip(r_ids, c_ids))
-            #         simplified_mask, segment_ids = simplify_mask(mask, r_ids, r_p_zip, r_c_zip)
-            #         for segment in self._sff_seg.segments:
-            #             if segment.id in segment_ids:
-            #                 new_simplified_mask = numpy.ndarray(mask.shape, dtype=int)
-            #                 new_simplified_mask = 0
-            #                 new_simplified_mask = (simplified_mask == segment.id) * segment.id
-            #                 segment.mask = new_simplified_mask  # set the empty 'mask' attribute
-            #                 self._segments.append(VTKSegment(segment, self._vtk_args))
-            #     except KeyError:  # EMDB map HDF5
-            #         for segment in self._sff_seg.segments:
-            #             segment.mask = f['/mask'].value
-            #             self._segments.append(VTKSegment(segment, self._vtk_args))
         else:
-            self._segments = map(lambda s: VTKSegment(s, self._vtk_args, transforms=self._sff_seg.transforms), self._sff_seg.segments)
+            self._segments = map(lambda s: VTKSegment(s, self._vtk_args, transforms=self._sff_seg.transforms),
+                                 self._sff_seg.segments)
 
     @property
     def vtk_args(self):
@@ -745,7 +749,7 @@ class VTKSegmentation(Segmentation):
             'ymaxs': [],
             'zmins': [],
             'zmaxs': []
-            }
+        }
         for segment in self.segments:
             for mesh in segment.meshes:
                 _xmin, _xmax, _ymin, _ymax, _zmin, _zmax = mesh.GetBounds()
@@ -759,7 +763,7 @@ class VTKSegmentation(Segmentation):
             min(_bounds['xmins']), max(_bounds['xmaxs']),
             min(_bounds['ymins']), max(_bounds['ymaxs']),
             min(_bounds['zmins']), max(_bounds['zmaxs'])
-            )
+        )
         return true_bounds
 
     @property
@@ -772,9 +776,9 @@ class VTKSegmentation(Segmentation):
         for segment in self.segments:
             segment.slice()
 
-    def as_roi(self, configs):
+    def as_roi(self, args, configs):
         from ..formats.roi import ROISegmentation
-        return ROISegmentation.from_vtk(self, configs)
+        return ROISegmentation.from_vtk(self, args, configs)
 
     def render(self):
         """Render to display"""
@@ -812,8 +816,8 @@ class VTKSegmentation(Segmentation):
             cubeAxesActor.YAxisMinorTickVisibilityOff()
             cubeAxesActor.ZAxisMinorTickVisibilityOff()
             ren.AddActor(cubeAxesActor)
-#             _actor_count += 1
-#             assert ren.VisibleActorCount() == _actor_count
+        #             _actor_count += 1
+        #             assert ren.VisibleActorCount() == _actor_count
         # axes: display axes by default
         if not self._vtk_args.no_orientation_axes:
             axesActor = vtk.vtkAxesActor()
