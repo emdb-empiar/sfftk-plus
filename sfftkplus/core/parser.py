@@ -166,7 +166,7 @@ summary = {
         'help': "display a summary instead of details [default: False]"
     }
 }
-default_transparency = 0.5
+default_transparency = 1.0
 transparency = {
     'args': ['-t', '--transparency'],
     'kwargs': {
@@ -359,6 +359,12 @@ createroi_parser.add_argument(
     action='store_true',
     default=False,
     help="modify the image IDs based on a fresh search [default: False]"
+)
+createroi_parser.add_argument(
+    '--point-reduce',
+    action='store_true',
+    default=False,
+    help="reduce the number and precision of points; useful to make smaller JSON ROI files [default: False]"
 )
 # ===============================================================================
 # attachroi subparser
