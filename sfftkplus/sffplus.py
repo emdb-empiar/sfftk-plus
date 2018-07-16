@@ -9,9 +9,8 @@ sfftkplus.sffplus
 from __future__ import division
 
 import os
-import sys
-
 import re
+import sys
 
 from sfftk.core.print_tools import print_date, print_static
 from sfftk.sff import _module_test_runner, _discover_test_runner
@@ -203,14 +202,14 @@ def handle_createroi(args, configs):
     :type args: ``argparse.Namespace``
     :param configs: configurations object
     :type config: ``sfftk.core.configs.Congif``
-    :return int status: status
+    :return int exit_status: exit status
     """
     # convert an EMDB-SFF file to an ROI file
     if re.match(r'.*\.(sff|hff)$', args.sff_file, re.IGNORECASE):
-        import schema
+        from .schema import SFFPSegmentation
         if args.verbose:
             print_date("Reading in EMDB-SFF file {}".format(args.sff_file))
-        sff_seg = schema.SFFPSegmentation(args.sff_file)
+        sff_seg = SFFPSegmentation(args.sff_file)
         # convert segments to VTK meshes
         if args.verbose:
             print_date("Converting EMDB-SFF segments to VTK meshes")
@@ -222,11 +221,11 @@ def handle_createroi(args, configs):
         # convert to ROI using sfftkplus.schema.roi
         if args.verbose:
             print_date("Converting to ROI using roi.xsd...")
-        roi_seg = vtk_seg.as_roi(configs)
+        roi_seg = vtk_seg.as_roi(args, configs)
         # export to file
         if args.verbose:
             print_date("Writing output to {}".format(args.output))
-        roi_seg.export(args.output)
+        exit_status = roi_seg.export(args.output)
         if args.verbose:
             print_date("Done")
     elif re.match(r'.*\.roi$', args.sff_file, re.IGNORECASE):
@@ -241,13 +240,13 @@ def handle_createroi(args, configs):
         # export to file
         if args.verbose:
             print_date("Writing output to {}".format(args.output))
-        roi_seg.export(args.output)
+        exit_status = roi_seg.export(args.output)
         if args.verbose:
             print_date("Done")
     else:
         print_date("Unsupported file type: {}".format(args.sff_file))
-        return 1
-    return 0
+        exit_status = os.EX_DATAERR
+    return exit_status
 
 
 def handle_view3d(args, configs):
