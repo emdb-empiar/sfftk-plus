@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
 # parser.py
 """Parses command-line options"""
+from __future__ import print_function
 import argparse
+import os
 import sys
 
 from sfftk.core.parser import add_args
@@ -53,6 +55,20 @@ details_param = {
     'kwargs': {
         'default': "",
         'help': "populates <details>...</details> in the XML file [default: '']"
+    }
+}
+FORMAT_LIST = [
+    ('roi', 'ROI'),
+    ('json', 'JSON'),
+]
+format_ = {
+    'args': ['-f', '--format'],
+    'kwargs': {
+        'default': FORMAT_LIST[0][0],
+        'choices': map(lambda f: f[0], FORMAT_LIST),
+        'help': "output file format; valid options are: {} [default: roi]".format(
+            ", ".join(map(lambda x: "{} ({})".format(x[0], x[1]), FORMAT_LIST))
+        ),
     }
 }
 # host = {
@@ -119,8 +135,8 @@ output = {
     'kwargs': {
         #         'type': argparse.FileType('w'),
         #         'default': sys.stdout,
-        'required': True,
-        'help': "file to convert to [default: sys.stdout]"
+        # 'required': True,
+        'help': "the name of the output file; by default this is the name of the input file with an .roi extension",
     }
 }
 # password = {
@@ -188,6 +204,14 @@ verbose = {
         'action': 'store_true',
         'default': False,
         'help': "verbose output"
+    }
+}
+overwrite = {
+    'args': ['-w', '--overwrite'],
+    'kwargs': {
+        'default': False,
+        'action': 'store_true',
+        'help': "overwrite the output [default: False]",
     }
 }
 
@@ -319,9 +343,11 @@ createroi_parser = subparsers.add_parser('createroi', description="Create ROIs a
 add_args(createroi_parser, config_path)
 add_args(createroi_parser, shipped_configs)
 createroi_parser.add_argument(*output['args'], **output['kwargs'])
+add_args(createroi_parser, overwrite)
+add_args(createroi_parser, format_)
 createroi_parser.add_argument(*verbose['args'], **verbose['kwargs'])
+# mutex parser group
 image_name_root_or_xyz_createroi_parser = createroi_parser.add_mutually_exclusive_group()
-
 image_name_root_or_xyz_createroi_parser.add_argument('-I', '--image-name-root',
                               help="the root name of the file in OMERO; e.g. 'emd_1080-top.map' has image root 'emd_1080'")
 image_name_root_or_xyz_createroi_parser.add_argument(
@@ -331,29 +357,23 @@ image_name_root_or_xyz_createroi_parser.add_argument(
     metavar=('TOP-IMAGE-ID', 'FRONT-IMAGE-ID', 'RIGHT-IMAGE-ID'),
     help="explicit image IDs for top, front and right (side) perspectives, respectively"
 )
-createroi_parser.add_argument('-q', '--quick-pick', type=int,
-                              help="if multiple IDs are found pick the one at the specified position; uses 1-based indexing for natural positioning [default: None]")
+createroi_parser.add_argument(
+    '-q', '--quick-pick',
+    type=int,
+    default=1,
+    help="if multiple IDs are found pick the one at the specified position; "
+         "uses 1-based indexing for natural positioning [default: 1]"
+)
 createroi_parser.add_argument(
     'sff_file',
     help="file containing segmentations to be converted into ROIs; this could also be an ROI file (*.roi) for "
          "modifying the image ids"
 )
-# # parser for emdb_sff files
-# sff_file_createroi_parser = createroi_parser.add_argument_group(
-#     title="EMDB-SFF file provided",
-#     description="Starting with a EMDB-SFF file, generate the ROIs using VTK"
-# )
 createroi_parser.add_argument(*primary_descriptor['args'], **primary_descriptor['kwargs'])
 createroi_parser.add_argument(*transparency['args'], **transparency['kwargs'])
-# createroi_parser.add_argument('-s', '--smooth', action='store_true', default=False, help="attempt to smoothen mesh [default: False]")
-# createroi_parser.add_argument('-i', '--smooth-iterations', default=50, type=int, help="the number of smoothing iterations [default: 50]")
 createroi_parser.add_argument(*mask_value['args'], **mask_value['kwargs'])
 createroi_parser.add_argument(*normals_off['args'], **normals_off['kwargs'])
-# parser for roi files
-# roi_file_createroi_parser = createroi_parser.add_argument_group(
-#     title="ROI file provided",
-#     description="Starting with an ROI file (*.roi) make some modifications without using VTK"
-# )
+
 createroi_parser.add_argument(
     '-i', '--reset-ids',
     action='store_true',
@@ -523,6 +543,15 @@ def parse_args(_args):
 
     # createroi
     elif args.subcommand == 'createroi':
+        # make the output file name and check if it exists
+        if args.output is None:
+            ofn = '.'.join(args.sff_file.split('.')[:-1]) + '.{}'.format(args.format)
+            if os.path.exists(ofn) and not args.overwrite:
+                print_date("Output file exists. Use --overwrite to replace it.")
+                return None, configs
+            else:
+                print_date("Using output file {}".format(ofn))
+                args.output = ofn
         # ensure valid primary_descriptor
         if args.primary_descriptor:
             try:
@@ -549,12 +578,21 @@ def parse_args(_args):
                 return None, configs
 
         # quick pick values are 1-based (not 0-based)
-        if args.quick_pick is not None:
-            if args.quick_pick <= 0:
-                print_date("Invalid value for --quick-pick. Should be 1-based value of item in list e.g. the value of 'a' in ['a', 'b'] is 1 (one).")
-                return None, configs
-            else:
-                args.quick_pick -= 1
+        # if args.quick_pick is not None:
+        if args.quick_pick <= 0:
+            print_date("Invalid value for --quick-pick. Should be 1-based value of item in list e.g. the value of "
+                       "'a' in ['a', 'b'] is 1 (one).")
+            return None, configs
+        else:
+            args.quick_pick -= 1 # make it a 0-based index for internal use
+
+        # if we don't have --top-front-right set
+        # then we can choose a default for -I/--image-name-root
+        if not args.top_front_right:
+            if args.image_name_root is None:
+                image_name_root = os.path.basename('.'.join(args.sff_file.split('.')[:-1]))
+                args.image_name_root = image_name_root
+                print_date("Setting image name root to {}".format(image_name_root))
 
         # reset ids must be accompanied by either -I or --top-front-right
         if args.reset_ids:
@@ -595,8 +633,8 @@ def parse_args(_args):
                 try:
                     assert tool in tool_list
                 except AssertionError:
-                    print >> sys.stderr, "Unknown tool: {}".format(tool)
-                    print >> sys.stderr, "Available tools for test: {}".format(", ".join(tool_list))
+                    print("Unknown tool: {}".format(tool), file=sys.stderr)
+                    print("Available tools for test: {}".format(", ".join(tool_list)), file=sys.stderr)
 
         if args.verbosity:
             try:
