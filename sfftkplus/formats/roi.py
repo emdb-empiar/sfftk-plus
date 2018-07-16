@@ -38,6 +38,8 @@ __author__ = "Paul K. Korir, PhD"
 __email__ = "pkorir@ebi.ac.uk, paul.korir@gmail.com"
 __date__ = "2017-04-11"
 
+ORIENTATIONS = ['x', 'y', 'z']
+
 
 def get_image_id(cursor, image_name_root, view, ext='map', quick_pick=None):
     """Obtain the image IDs for top, front and right images by EMDB accession code
@@ -295,8 +297,11 @@ class ROIHeader(Header):
                 self.right_id = get_image_id(cur, args.image_name_root, 'side', quick_pick=args.quick_pick)
                 # sanity check
                 assert self.top_id != self.front_id and self.right_id != self.front_id
+            elif args.top_front_right is not None:
+                self.top_id, self.front_id, self.right_id = args.top_front_right
             else:
-                print_date("-I/--image-name-root not set. Image IDs will be excluded.")
+                print_date(
+                    "Neither -I/--image-name-root nor --top-front-right arguments not set. Image IDs will be excluded.")
                 self.top_id = None
                 self.front_id = None
                 self.right_id = None
@@ -440,9 +445,161 @@ class ROISegmentation(Segmentation):
             print_date("OK", incl_date=False)
         return omero_rois
 
-    def something(self):
-        pass
+    def _export_rois_json(self, fn, orientation, fill_alpha=1.0, stroke_alpha=1.0, font_size=2.0,
+                          stroke_colour=(0, 1, 0), stroke_width=0.22):
+        """Export ROIs for this orientation as JSON (instead of as XML)
 
+        :param fn: the output file name root; the image ID (or orientation) and the slice value will be included
+        :param orientation: character specifying the orientation; either 'x', 'y', or 'z'
+        :param fill_alpha: the alpha value for the shape fill; default 1.0
+        :param stroke_alpha: the alpha value for the shape stroke; default 1.0
+        :param font_size: the font size for text
+        :param stroke_colour: the colour of the shape stroke; default (0, 1, 0) (green)
+        :param stroke_width: the width of the shape stroke ; default 0.22
+        :return exit_status: the exit status (see Python's ``os`` module for details)
+        """
+        try:
+            assert orientation in ORIENTATIONS
+        except AssertionError as a:
+            print_date("Invalid value for 'orientation'; should be in [{}]".format(', '.join(ORIENTATIONS)))
+            print(str(a))
+            return os.EX_DATAERR
+        # ensure valid shape params
+        try:
+            assert 0 <= fill_alpha <= 1
+        except AssertionError as a:
+            print_date("Invalid value for 'fill_alpha' ({}); should be in [0-1]".format(fill_alpha))
+            print(str(a))
+            return os.EX_DATAERR
+        try:
+            assert 0 <= stroke_alpha <= 1
+        except AssertionError as a:
+            print_date("Invalid value for 'stroke_alpha' ({}); should be in [0-1]".format(stroke_alpha))
+            print(str(a))
+            return os.EX_DATAERR
+        try:
+            assert 0 <= font_size <= 30  # arbitrary bounds
+        except AssertionError as a:
+            print_date("Invalid value for 'font_size' ({}); should be in [0-30]".format(font_size))
+            print(str(a))
+            return os.EX_DATAERR
+        try:
+            assert 3 <= len(stroke_colour) <= 4
+            if len(stroke_colour) == 3:
+                r, g, b = stroke_colour
+                a = 1
+            elif len(stroke_colour) == 4:
+                r, g, b, a = stroke_colour
+            assert 0 <= r <= 1 and 0 <= g <= 1 and 0 <= b <= 1 and 0 <= a <= 1
+        except AssertionError as a:
+            print_date("Invalid value for 'stroke_colour' ({})".format(str(stroke_colour)))
+            print(str(a))
+            return os.EX_DATAERR
+        try:
+            assert 0 <= stroke_width <= 10
+        except AssertionError as a:
+            print_date("Invalid value for 'stroke_width' (); should be in [0-10]".format(stroke_width))
+            print(str(a))
+            return os.EX_DATAERR
+        # stroke colour
+        stroke_colour_ = rgba_to_hex(stroke_colour)
+        print(stroke_colour_)
+        import json
+        # x contours
+        grouped_contours = dict()
+        # we want to group contours by slice value (o)
+        # each json file will have all the contours for all the segments batched together
+        # we need to store the colour for each segment and the contours for each segment
+        for segment in self.segments:
+            for contour in getattr(segment.contours, '{}_contours'.format(orientation)):
+                # get the value for this orientation slice level
+                if orientation == 'x':
+                    o = int(contour[0][0])
+                elif orientation == 'y':
+                    o = int(contour[0][1])
+                elif orientation == 'z':
+                    o = int(contour[0][2])
+                if o not in grouped_contours:
+                    grouped_contours[o] = dict()
+                if segment.id not in grouped_contours[o]:
+                    grouped_contours[o][segment.id] = dict()
+                    grouped_contours[o][segment.id]['colour'] = segment.colour
+                    grouped_contours[o][segment.id]['contours'] = [contour]
+                else:
+                    grouped_contours[o][segment.id]['contours'] += [contour]
+        # we write a json file for each slice
+        for o, segment in grouped_contours.iteritems():
+            shapes = list()
+            for segment_id, segment_contours in segment.iteritems():
+                colour = segment_contours['colour']
+                for contour in segment_contours['contours']:
+                    point_str = ''
+                    for point_id, point in contour.iteritems():
+                        if point_id == 0:
+                            if orientation == 'x':
+                                point_str += 'M {:.2f} {:.2f} '.format(point[1], point[2])
+                            elif orientation == 'y':
+                                point_str += 'M {:.2f} {:.2f} '.format(point[0], point[2])
+                            elif orientation == 'z':
+                                point_str += 'M {:.2f} {:.2f} '.format(point[1], point[0])
+                        else:
+                            if orientation == 'x':
+                                point_str += 'L {:.2f} {:.2f} '.format(point[1], point[2])
+                            elif orientation == 'y':
+                                point_str += 'L {:.2f} {:.2f} '.format(point[0], point[2])
+                            elif orientation == 'z':
+                                point_str += 'L {:.2f} {:.2f} '.format(point[1], point[0])
+                    # if the last contour point is the same as the first the it is closed
+                    # if contour[point_id] == contour[0]:
+                    point_str += 'z'
+                    shapes.append({
+                        "fontStyle": "Bold",
+                        "fillAlpha": fill_alpha,
+                        "strokeAlpha": stroke_alpha,
+                        "id": None,
+                        "points": point_str,
+                        "fontSize": font_size,
+                        "theZ": o,
+                        "strokeColor": stroke_colour_,
+                        "theT": 0,
+                        "type": "Polygon",
+                        "textValue": str(segment_id),
+                        "strokeWidth": stroke_width,
+                        "fillColor": rgba_to_hex(colour),  # if contour[point_id] == contour[0] else None,
+                    })
+            # write the shapes for this slice
+            if orientation == 'x':
+                if self.roi_seg.image_ids.front is not None:
+                    ofn = fn.format(self.roi_seg.image_ids.front, o)
+                else:
+                    ofn = fn.format(orientation, o)
+            elif orientation == 'y':
+                if self.roi_seg.image_ids.right is not None:
+                    ofn = fn.format(self.roi_seg.image_ids.right, o)
+                else:
+                    ofn = fn.format(orientation, o)
+            elif orientation == 'z':
+                if self.roi_seg.image_ids.top is not None:
+                    ofn = fn.format(self.roi_seg.image_ids.top, o)
+                else:
+                    ofn = fn.format(orientation, o)
+            # write out the JSON for this orientation and this slice
+            with open(ofn, 'w') as f:
+                json.dump([{"shapes": shapes}], f)
+        return
+
+    def _export_json(self, fn, *args, **kwargs):
+        """Export ROIs as JSON formatted the way OMERO structures its JSONs
+
+        :param fn: the root of the output file names; should contain two placeholders for the image ID (if it does not
+        exist the orientation ('x', 'y', 'z') will be used instead; and the slice level value
+        :param args: positional arguments to be passed to the underlying ``_export_orientation_json()`` private method
+        :param kwargs: keyword arguments to be passed to the underlying ``_export_orientation_json() private method
+        :return exit_status: the exit status (see Python's ``os`` module for details
+        """
+        for orientation in ORIENTATIONS:
+            exit_status = self._export_rois_json(fn, orientation, *args, **kwargs)
+        return exit_status
 
     def export(self, fn, *args, **kwargs):
         """Export ROIs as a file
@@ -470,7 +627,12 @@ class ROISegmentation(Segmentation):
                 self.roi_seg.export(f, 0)
             exit_status = os.EX_OK
         elif re.match(r".*\.json$", fn, re.IGNORECASE):
+            # in the case of outputing JSON the provided filename is not the actual filename into which data will be
+            # written; rather, the filename conveys: i) the filename base; ii) the output format
+            # the fn_root var is constructed from the fn argument
             fn_root = '.'.join(fn.split('.')[:-1]) + '-{}-{}.json'
+            return self._export_json(fn_root, *args, **kwargs)
+            """
             import json
             # x contours
             grouped_contours = dict()
@@ -632,3 +794,4 @@ class ROISegmentation(Segmentation):
             print_date("Unknown output file format")
             exit_status = os.EX_DATAERR
         return exit_status
+        """
