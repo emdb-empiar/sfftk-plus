@@ -1,2 +1,2 @@
 # sfftk-plus
-Extended toolkit for working with EMDB-SFF and OMERO (using VTK for geometrical manipulation)
+Extended toolkit for working with EMDB-SFF files
