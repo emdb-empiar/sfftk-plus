@@ -24,7 +24,6 @@ and limitations under the License.
 from __future__ import division
 
 import math
-import multiprocessing
 import os
 from random import random
 
@@ -98,8 +97,9 @@ def simplify_mask(mask, r_ids, r_p_zip, replace=True):
     return simplified_mask, segment_ids
 
 
-class VTKMesh(vtk.vtkPolyData):
-    def __init__(self, colour, args):
+class VTKMesh(object):
+    def __init__(self, colour, args, *args_, **kwargs_):
+        self._vtk_obj = vtk.vtkPolyData(*args_)
         if len(colour) == 3:
             self._colour = colour
             self._alpha = 1
@@ -110,6 +110,10 @@ class VTKMesh(vtk.vtkPolyData):
     @property
     def vtk_args(self):
         return self._vtk_args
+
+    @property
+    def vtk_obj(self):
+        return self._vtk_obj
 
     @property
     def colour(self):
@@ -136,7 +140,7 @@ class VTKMesh(vtk.vtkPolyData):
         return self._vtk_args.transparency
 
     @classmethod
-    def from_mesh(cls, sff_mesh, colour, args):
+    def from_mesh(cls, sff_mesh, colour, args, *args_, **kwargs_):
         """Initialiase a VTKMesh object from a ``sfftk.schema.SFFMesh``
         
         :param mesh: a mesh with vertices and polygons
@@ -204,18 +208,18 @@ class VTKMesh(vtk.vtkPolyData):
             new_vertex_id = old_vertex_id_to_new_vertex_id[old_vertex_id]
             new_normals[new_vertex_id] = normal
         # the VTKMesh
-        vtkmesh = cls(colour, args)
+        vtkmesh = cls(colour, args, *args_, **kwargs_)
         # define the geometry
         points = vtk.vtkPoints()
         for vertex_id, vertex in new_vertices.iteritems():
             points.InsertPoint(vertex_id, *vertex)
-        vtkmesh.SetPoints(points)
+        vtkmesh.vtk_obj.SetPoints(points)
         # define the topology
         cellArray = vtk.vtkCellArray()
         for polygon in new_polygons.itervalues():
             cell_size = len(polygon)
             cellArray.InsertNextCell(cell_size, polygon)
-        vtkmesh.SetPolys(cellArray)
+        vtkmesh.vtk_obj.SetPolys(cellArray)
         #  define normals (if they exist)
         if not args.normals_off:
             if len(new_normals) == len(new_vertices):
@@ -223,15 +227,15 @@ class VTKMesh(vtk.vtkPolyData):
                 normals.SetNumberOfComponents(3)
                 for normal_id, normal in new_normals.iteritems():
                     normals.InsertTuple3(normal_id, *normal)
-                vtkmesh.GetPointData().SetNormals(normals)
+                vtkmesh.vtk_obj.GetPointData().SetNormals(normals)
         return vtkmesh
 
     @classmethod
-    def from_volume(cls, mask, colour, args):
+    def from_volume(cls, lattice, colour, args, *args_, **kwargs_):
         """Initialiase a VTKMesh object from a binarised ``numpy.ndarray``
         
-        :param mask: a mask (3D matrix)
-        :type mask: ``numpy.ndarray``
+        :param lattice: a mask (3D matrix)
+        :type lattice: ``numpy.ndarray``
         :param colour: the segment colour
         :type colour: ``sfftk.schema.SFFColour``
         :param args: parsed arguments
@@ -239,12 +243,12 @@ class VTKMesh(vtk.vtkPolyData):
         :return vtkmesh: an VTKMesh object
         :rtype vtkmesh: ``VTKMesh``  
         """
-        vtkmesh = cls(colour, args)
-        # try and figure out the mask value if not specified
+        vtkmesh = cls(colour, args, *args_, **kwargs_)
+        # try and figure out the lattice value if not specified
         if args.mask_value is not None:
             mask_value = args.mask_value
         else:
-            mask_values = filter(lambda x: x != 0, set(mask.flatten().tolist()))
+            mask_values = filter(lambda x: x != 0, set(lattice.flatten().tolist()))
             if len(mask_values) == 1:
                 mask_value = mask_values[0]
             else:
@@ -252,9 +256,9 @@ class VTKMesh(vtk.vtkPolyData):
                 mask_value = sum(mask_values) / len(mask_values)
 
         vol = vtk.vtkImageData()
-        z_size, y_size, x_size = mask.shape
+        z_size, y_size, x_size = lattice.shape
         vol.SetExtent(0, x_size - 1, 0, y_size - 1, 0, z_size - 1)
-        vtkmesh.vol_extent = 0, x_size - 1, 0, y_size - 1, 0, z_size - 1
+        # vtkmesh.vol_extent = 0, x_size - 1, 0, y_size - 1, 0, z_size - 1
         vol.SetOrigin(0.0, 0.0, 0.0)
         sp_x = 1.0  # /(x_size - 1)
         sp_y = 1.0  # /(y_size - 1)
@@ -263,7 +267,7 @@ class VTKMesh(vtk.vtkPolyData):
         vol.AllocateScalars(vtk.VTK_FLOAT, 1)
         voxels = vtk.vtkFloatArray()
         voxels.SetNumberOfComponents(1)
-        for m in mask.flatten().tolist():
+        for m in lattice.flatten().tolist():
             voxels.InsertNextValue(float(m))
         vol.GetPointData().SetScalars(voxels)
         # convert the volume to a surface
@@ -273,8 +277,8 @@ class VTKMesh(vtk.vtkPolyData):
         contours.Update()
         contoursOutput = contours.GetOutput()
 
-        vtkmesh.SetPoints(contoursOutput.GetPoints())
-        vtkmesh.SetPolys(contoursOutput.GetPolys())
+        vtkmesh.vtk_obj.SetPoints(contoursOutput.GetPoints())
+        vtkmesh.vtk_obj.SetPolys(contoursOutput.GetPolys())
         # triangulate
         triangleMesh = vtk.vtkTriangleFilter()
         triangleMesh.SetInputData(contoursOutput)
@@ -313,17 +317,17 @@ class VTKMesh(vtk.vtkPolyData):
             normals.Update()
             normalsOutput = normals.GetOutput()
             #             print vtkmesh_n.GetPointData().GetNormals()
-            vtkmesh.SetPoints(normals.GetOutput().GetPoints())
-            vtkmesh.SetPolys(normals.GetOutput().GetPolys())
-            vtkmesh.GetPointData().SetNormals(normalsOutput.GetPointData().GetNormals())
+            vtkmesh.vtk_obj.SetPoints(normals.GetOutput().GetPoints())
+            vtkmesh.vtk_obj.SetPolys(normals.GetOutput().GetPolys())
+            vtkmesh.vtk_obj.GetPointData().SetNormals(normalsOutput.GetPointData().GetNormals())
             return vtkmesh
         else:
-            vtkmesh.SetPoints(triangleStripsOutput.GetPoints())
-            vtkmesh.SetPolys(triangleStripsOutput.GetPolys())
+            vtkmesh.vtk_obj.SetPoints(triangleStripsOutput.GetPoints())
+            vtkmesh.vtk_obj.SetPolys(triangleStripsOutput.GetPolys())
             return vtkmesh
 
     @classmethod
-    def from_shape(cls, shape, colour, args, transform, resolution=20):
+    def from_shape(cls, shape, colour, args, transform, resolution=20, *args_, **kwargs_):
         """Initialiase a VTKMesh object from a sfftk.schema.SFFShape
         
         :param shapes: an iterable of shapes
@@ -339,7 +343,7 @@ class VTKMesh(vtk.vtkPolyData):
         :rtype vtkmesh: ``VTKMesh``  
         """
         assert resolution > 0
-        vtkmesh = cls(colour, args)
+        vtkmesh = cls(colour, args, *args_, **kwargs_)
         from sfftk.schema import SFFEllipsoid, SFFCuboid, SFFCylinder, SFFCone
         if isinstance(shape, SFFEllipsoid):
             vtk_shape = vtk.vtkSphereSource()
@@ -373,8 +377,8 @@ class VTKMesh(vtk.vtkPolyData):
         triangleMesh.SetInputData(_vtkmesh)
         triangleMesh.Update()
         triangleMeshOutput = triangleMesh.GetOutput()
-        vtkmesh.SetPoints(triangleMeshOutput.GetPoints())
-        vtkmesh.SetPolys(triangleMeshOutput.GetPolys())
+        vtkmesh.vtk_obj.SetPoints(triangleMeshOutput.GetPoints())
+        vtkmesh.vtk_obj.SetPolys(triangleMeshOutput.GetPolys())
         return vtkmesh
 
     def slice(self):
@@ -407,7 +411,7 @@ class VTKMesh(vtk.vtkPolyData):
         self.mapper = vtk.vtkOpenGLPolyDataMapper()
         # normals
         normals = vtk.vtkPolyDataNormals()
-        normals.SetInputData(self)
+        normals.SetInputData(self.vtk_obj)
         normals.ComputePointNormalsOn()
         normals.SplittingOff()
         normals.AutoOrientNormalsOn()
@@ -485,8 +489,8 @@ class VTKContours(Contours):
         self._vtk_args = self._mesh.vtk_args
         self._colour = self._mesh.colour
         self._alpha = self._mesh.alpha
-        self._mesh.ComputeBounds
-        self.Xmin, self.Xmax, self.Ymin, self.Ymax, self.Zmin, self.Zmax = self._mesh.GetBounds()
+        self._mesh.vtk_obj.ComputeBounds
+        self.Xmin, self.Xmax, self.Ymin, self.Ymax, self.Zmin, self.Zmax = self._mesh.vtk_obj.GetBounds()
         # create orthogonal planes
         self._axes = ['x', 'y', 'z']
         for d in self._axes:
@@ -511,7 +515,7 @@ class VTKContours(Contours):
     def _build_vtkcontours(self):
         # fill  holes
         filledHoles = vtk.vtkFillHolesFilter()
-        filledHoles.SetInputData(self._mesh)
+        filledHoles.SetInputData(self._mesh.vtk_obj)
         filledHoles.SetHoleSize(1000)
         filledHoles.Update()
         filledHolesOutput = filledHoles.GetOutput()
@@ -542,20 +546,20 @@ class VTKContours(Contours):
             args = self._mesh.vtk_args
             cut_meshes[d] = VTKMesh(colour, args)
             stripper_output = self._stripper.GetOutput()
-            cut_meshes[d].SetPoints(stripper_output.GetPoints())
-            cut_meshes[d].SetPolys(stripper_output.GetLines())
+            cut_meshes[d].vtk_obj.SetPoints(stripper_output.GetPoints())
+            cut_meshes[d].vtk_obj.SetPolys(stripper_output.GetLines())
         return cut_meshes
 
     def _build_contours(self):
         contour_dict = dict()
         for d in self._axes:
             contours = list()
-            for i in xrange(self._vtkcontours[d].GetNumberOfCells()):
-                cell = self._vtkcontours[d].GetCell(i)
+            for i in xrange(self._vtkcontours[d].vtk_obj.GetNumberOfCells()):
+                cell = self._vtkcontours[d].vtk_obj.GetCell(i)
                 idList = cell.GetPointIds()
                 contour = dict()
                 for j in xrange(idList.GetNumberOfIds()):
-                    contour[j] = self._vtkcontours[d].GetPoint(idList.GetId(j))
+                    contour[j] = self._vtkcontours[d].vtk_obj.GetPoint(idList.GetId(j))
                 contours.append(contour)
             contour_dict[d] = contours
         return contour_dict
@@ -714,7 +718,7 @@ class VTKSegmentation(Segmentation):
                         print_date("Non-binary lattice")
                     # new mask
                     new_simplified_mask = numpy.ndarray(lattice_data.shape, dtype=int)
-                    new_simplified_mask[:,:,:] = 0
+                    new_simplified_mask[:, :, :] = 0
                     # only the parts for this segment
                     new_simplified_mask = (lattice_data == int(segment.volume.value)) * int(segment.volume.value)
                 self._segments.append(
