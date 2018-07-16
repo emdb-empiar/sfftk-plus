@@ -130,19 +130,40 @@ class TestParser_createroi(unittest.TestCase):
 
     def test_default(self):
         """Test default form"""
-        args, _ = parse_args(shlex.split('createroi file.sff -o file.roi'))
+        args, _ = parse_args(shlex.split('createroi file.sff'))
         self.assertEqual(args.sff_file, 'file.sff')
         self.assertEqual(args.output, 'file.roi')
+        self.assertFalse(args.overwrite)
+        self.assertEqual(args.format, 'roi')
         self.assertIsNone(args.primary_descriptor)
         self.assertFalse(args.verbose)
-        self.assertEqual(args.transparency, 0.5)
-        self.assertIsNone(args.image_name_root)
+        self.assertEqual(args.transparency, 1.0)
+        self.assertEqual(args.image_name_root, 'file')
         self.assertEqual(args.mask_value, 1)
         self.assertFalse(args.normals_off)
         self.assertIsNone(args.config_path)
         self.assertFalse(args.shipped_configs)
-        self.assertIsNone(args.quick_pick)
+        self.assertEqual(args.quick_pick, 0)
         self.assertFalse(args.reset_ids)
+
+    def test_output(self):
+        """Test that we can set the output file"""
+        args, _ = parse_args(shlex.split('createroi -o fileAnother.roi file.sff'))
+        self.assertEqual(args.sff_file, 'file.sff')
+        self.assertEqual(args.output, 'fileAnother.roi')
+        self.assertEqual(args.format, 'roi')
+
+    def test_overwrite(self):
+        """Test that we can set an 'overwrite' flag"""
+        args, _ = parse_args(shlex.split('createroi -w file.sff'))
+        self.assertTrue(args.overwrite)
+
+    def test_format(self):
+        """Test that we can specify the output format only"""
+        args, _ = parse_args(shlex.split('createroi -f json file.sff'))
+        self.assertEqual(args.sff_file, 'file.sff')
+        self.assertEqual(args.format, 'json')
+        self.assertEqual(args.output, 'file.json')
 
     def test_roi_file(self):
         """Test that we can start with an ROI file"""
@@ -156,11 +177,6 @@ class TestParser_createroi(unittest.TestCase):
         """Test that we ensure that if --reset-ids then --image-name-root must not be None"""
         with self.assertRaises(ValueError):
             parse_args(shlex.split('createroi file.roi --reset-ids -o new_file.roi'))
-
-        # self.assertEqual(args.sff_file, 'file.roi')
-        # self.assertTrue(args.reset_ids)
-        # self.assertEqual(args.image_name_root, 'emd_1234')
-        # self.assertEqual(args.output, 'new_file.roi')
 
     def test_primary_descriptor(self):
         """Test specifying primary descriptor"""
@@ -199,6 +215,13 @@ class TestParser_createroi(unittest.TestCase):
         """Test image name root"""
         args, _ = parse_args(shlex.split('createroi file.sff -o file.roi -I emd_1234'))
         self.assertEqual(args.image_name_root, 'emd_1234')
+        self.assertIsNone(args.top_front_right)
+
+    def test_top_front_right(self):
+        """Test that we can set the image IDs directly"""
+        args, _ = parse_args(shlex.split('createroi file.sff -o file.roi --top-front-right 5 6 7'))
+        self.assertItemsEqual(args.top_front_right, [5, 6, 7])
+        self.assertIsNone(args.image_name_root)
 
     def test_quick_pick(self):
         """Test that we have right value for quick pick"""
@@ -351,7 +374,7 @@ class TestParser_view3d(unittest.TestCase):
         self.assertFalse(args.normals_off)
         self.assertFalse(args.wireframe)
         self.assertIsNone(args.primary_descriptor)
-        self.assertEqual(args.transparency, 0.5)
+        self.assertEqual(args.transparency, 1.0)
         self.assertFalse(args.verbose)
         self.assertEqual(args.mask_value, 1)
         self.assertIsNone(args.config_path)
