@@ -173,11 +173,6 @@ class TestParser_createroi(unittest.TestCase):
         self.assertEqual(args.image_name_root, 'emd_1234')
         self.assertTrue(args.reset_ids)
 
-    def test_roi_file_reset_ids_image_name_root_together(self):
-        """Test that we ensure that if --reset-ids then --image-name-root must not be None"""
-        with self.assertRaises(ValueError):
-            parse_args(shlex.split('createroi file.roi --reset-ids -o new_file.roi'))
-
     def test_primary_descriptor(self):
         """Test specifying primary descriptor"""
         args, _ = parse_args(shlex.split('createroi file.sff -o file.roi -R threeDVolume'))

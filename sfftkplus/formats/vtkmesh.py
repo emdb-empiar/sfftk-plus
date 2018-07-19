@@ -158,7 +158,7 @@ class VTKMesh(object):
         normals = dict()
         normal_ids = list()
         for v in sff_mesh.vertices:
-            if v.designation == 'vertex':
+            if v.designation == 'surface':
                 vertices[v.vID] = v.point
                 vertex_ids.append(v.vID)
             elif v.designation == 'normal':
@@ -693,6 +693,7 @@ def decode_lattice(lattice):
     :param lattice: :py:class:``sfftk.schema.SFFLattice`` object
     """
     lattice.decode()
+    return lattice
 
 
 class VTKSegmentation(Segmentation):
@@ -713,9 +714,11 @@ class VTKSegmentation(Segmentation):
             lattices = parallelise(
                 self._sff_seg.lattices,
                 target=decode_lattice,
+                number_of_processes=10,
             )
             # reconstitute into a dict
-            self._lattices = dict(zip(map(lambda l: l.id, lattices), lattices))
+            for lattice in lattices:
+                self._lattices[lattice.id] = lattice
             # now we have the lattices decoded into 3D volumes, we need to compute the surfaces for each
             for segment in self._sff_seg.segments:
                 lattice = self._lattices[segment.volume.latticeId]

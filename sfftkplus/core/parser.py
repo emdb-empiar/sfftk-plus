@@ -16,6 +16,12 @@ __date__ = '2016-06-10'
 verbosity_range = range(4)
 
 Parser = argparse.ArgumentParser(prog='sffp', description="The EMDB-SFF Toolkit (sfftk)")
+Parser.add_argument(
+    '-V', '--version',
+    action='store_true',
+    default=False,
+    help='show the sfftk-plus version string and the supported EMDB-SFF version string',
+)
 
 subparsers = Parser.add_subparsers(
     title='Tools',
@@ -520,9 +526,13 @@ def parse_args(_args):
     elif len(_args) == 1:
         if _args[0] == "tests":
             pass
+        elif _args[0] == '-V' or _args[0] == '--version':
+            from .. import SFFTKPLUS_VERSION, EMDB_SFF_VERSION
+            print_date("sfftk-plus version: {} for EMDB-SFF version: {}".format(SFFTKPLUS_VERSION, EMDB_SFF_VERSION))
+            sys.exit(os.EX_USAGE)
         elif _args[0] in Parser._actions[1].choices.keys():
             exec ('{}_parser.print_help()'.format(_args[0]))
-            sys.exit(0)
+            sys.exit(os.EX_USAGE)
 
     # parse args
     args = Parser.parse_args(_args)
@@ -593,14 +603,6 @@ def parse_args(_args):
                 image_name_root = os.path.basename('.'.join(args.sff_file.split('.')[:-1]))
                 args.image_name_root = image_name_root
                 print_date("Setting image name root to {}".format(image_name_root))
-
-        # reset ids must be accompanied by either -I or --top-front-right
-        if args.reset_ids:
-            try:
-                assert args.image_name_root is not None or args.top_front_right is not None
-            except AssertionError:
-                raise ValueError("Resetting IDs requires that either -I/--image-name-root or --top-right-front is set")
-                return None, configs
 
     # attachroi
     elif args.subcommand == 'attachroi':

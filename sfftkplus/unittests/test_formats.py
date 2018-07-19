@@ -42,3 +42,8 @@ class TestFormats(unittest.TestCase):
         roi_segmentation = vtk_segmentation.as_roi(args, configs)
         self.assertEqual(len(roi_segmentation.segments), len(self.roi_segmentation.segments))
         self.assertIsInstance(roi_segmentation.segments[0], type(self.roi_segmentation.segments[0]))
+
+    # def test_roi_json(self):
+    #     """Test that we can write ROIs as JSONs"""
+    #     args, configs = parse_args(shlex.split('createroi {} -o file.json'.format(self.sff_file)))
+    #     # vtk_segmentation = self.sff_segmentation.

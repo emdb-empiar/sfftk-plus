@@ -1,14 +1,14 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-'''
+"""
 test_omero_wrapper.py
 
 Unit tests for OMERO handlers
-'''
+"""
 
-from __future__ import division
+from __future__ import division, print_function
 
-import os, sys
+import os
 import shlex
 import unittest
 
@@ -20,7 +20,6 @@ from ..core.parser import parse_args
 from ..omero import handlers, primitives
 from ..sffplus import get_image_ids
 
-
 __author__ = 'Paul K. Korir, PhD'
 __email__ = 'pkorir@ebi.ac.uk, paul.korir@gmail.com'
 __date__ = '2016-06-13'
@@ -28,10 +27,10 @@ __date__ = '2016-06-13'
 
 # utility functions
 def colorInt(r, g, b, a):
-    '''Function that return a signed 32-bit integer from RGBA tuple.
+    """Function that return a signed 32-bit integer from RGBA tuple.
     
     0 <= r,g,b,a <= 1
-    '''
+    """
     assert 0 <= r <= 1
     assert 0 <= g <= 1
     assert 0 <= b <= 1
@@ -45,7 +44,8 @@ def colorInt(r, g, b, a):
 
 # handlers
 class TestHandlers_OMEROConnection(unittest.TestCase):
-    '''Test on using the opened connection'''
+    """Test on using the opened connection"""
+
     @classmethod
     def setUpClass(cls):
         cls.config_fn = os.path.join(TEST_DATA_PATH, 'configs', 'sffp.conf')
@@ -57,61 +57,61 @@ class TestHandlers_OMEROConnection(unittest.TestCase):
         del cls.connection
 
     def test_connect(self):
-        '''Test that we can connect'''
+        """Test that we can connect"""
         with self.connection:
             connected = self.connection.connected
         self.assertTrue(connected)
 
     def test_images(self):
-        '''Test that we can get images'''
+        """Test that we can get images"""
         with self.connection:
             images = [image for image in self.connection.images()]
         self.assertGreater(len(images), 0)
 
     def test_rois(self):
-        '''Test that we can get ROIs'''
+        """Test that we can get ROIs"""
         with self.connection:
             rois = [roi for roi in self.connection.rois()]
         self.assertGreater(len(rois), 0)
 
     def test_projects(self):
-        '''Test that we can get available projects'''
+        """Test that we can get available projects"""
         with self.connection:
             projects = [project for project in self.connection.projects]
         self.assertGreater(len(projects), 0)
 
     def test_datasets(self):
-        '''test that we can get available datasets'''
+        """test that we can get available datasets"""
         with self.connection:
             datasets = [dataset for dataset in self.connection.datasets()]
         self.assertGreater(len(datasets), 0)
 
     def test_get_image_by_id(self):
-        '''Test that we can get a single image by ID'''
+        """Test that we can get a single image by ID"""
         with self.connection:
             image = self.connection.getImage(101)
         self.assertIsInstance(image, _ImageWrapper)
 
     def test_get_rois_by_image_id(self):
-        '''Test that we can get all ROIs associated with an image'''
+        """Test that we can get all ROIs associated with an image"""
         with self.connection:
             rois = self.connection.getROIs(101)
         self.assertGreater(len(rois), 0)
 
 
-class TestHandlers_OMEROROI(unittest.TestCase):
-    def test_create(self):
-        self.assertTrue(False)
-
-    def test_addShape(self):
-        self.assertTrue(False)
-
-    def test_load_data(self):
-        self.assertTrue(False)
+# class TestHandlers_OMEROROI(unittest.TestCase):
+#     def test_create(self):
+#         self.assertTrue(False)
+#
+#     def test_addShape(self):
+#         self.assertTrue(False)
+#
+#     def test_load_data(self):
+#         self.assertTrue(False)
 
 
 class TestPrimitives_Shape(unittest.TestCase):
-    '''
+    """
     Test generic Shape attributes with a Rectangle ROI object
         FillColor
         FontFamily
@@ -123,7 +123,8 @@ class TestPrimitives_Shape(unittest.TestCase):
         TheT
         TheZ
         TextValue
-    '''
+    """
+
     @classmethod
     def setUpClass(cls):
         # the connectiona args
@@ -148,7 +149,8 @@ class TestPrimitives_Shape(unittest.TestCase):
         cls.fontSize = _random_integer(5, 15)
 
         # create the shape with the above params
-        cls.rect = primitives.Rectangle(theT=cls.theT, theZ=cls.theZ, X=cls.X, Y=cls.Y, Width=cls.Width, Height=cls.Height)
+        cls.rect = primitives.Rectangle(theT=cls.theT, theZ=cls.theZ, X=cls.X, Y=cls.Y, Width=cls.Width,
+                                        Height=cls.Height)
         cls.rect.setFillColor(cls.r, cls.g, cls.b)
         cls.rect.setFontFamily('serif')
         cls.rect.setFontSize(cls.fontSize, 'POINT')
@@ -212,7 +214,7 @@ class TestPrimitives_Line(unittest.TestCase):
         cls.line = primitives.Line(X1=cls.X1, X2=cls.X2, Y1=cls.Y1, Y2=cls.Y2)
 
     def test_create(self):
-        '''Test that we can create a Line object'''
+        """Test that we can create a Line object"""
         # assertions
         self.assertEqual(round(self.line.getX1(), 6), round(self.X1, 6))
         self.assertEqual(round(self.line.getX2(), 6), round(self.X2, 6))
@@ -220,7 +222,7 @@ class TestPrimitives_Line(unittest.TestCase):
         self.assertEqual(round(self.line.getY2(), 6), round(self.Y2, 6))
 
     def test_modify(self):
-        '''Test that we can modify params'''
+        """Test that we can modify params"""
         X1 = _random_float()
         X2 = _random_float()
         Y1 = _random_float()
@@ -246,14 +248,14 @@ class TestPrimitives_Rectangle(unittest.TestCase):
         cls.rectangle = primitives.Rectangle(X=cls.X, Y=cls.Y, Width=cls.Width, Height=cls.Height)
 
     def test_create(self):
-        '''Test that we can create a Rectangle object'''
+        """Test that we can create a Rectangle object"""
         self.assertEqual(round(self.rectangle.getX(), 6), round(self.X, 6))
         self.assertEqual(round(self.rectangle.getY(), 6), round(self.Y, 6))
         self.assertEqual(round(self.rectangle.getWidth(), 6), round(self.Width, 6))
         self.assertEqual(round(self.rectangle.getHeight(), 6), round(self.Height, 6))
 
     def test_modify(self):
-        '''Test that we can modify params'''
+        """Test that we can modify params"""
         X = _random_float() * _random_integer()
         Y = _random_float() * _random_integer()
         Width = _random_float() * _random_integer()
@@ -279,14 +281,14 @@ class TestPrimitives_Mask(unittest.TestCase):
         cls.mask = primitives.Mask(X=cls.X, Y=cls.Y, Width=cls.Width, Height=cls.Height)
 
     def test_create(self):
-        '''Test that we can create a Mask object'''
+        """Test that we can create a Mask object"""
         self.assertEqual(round(self.mask.getX(), 6), round(self.X, 6))
         self.assertEqual(round(self.mask.getY(), 6), round(self.Y, 6))
         self.assertEqual(round(self.mask.getWidth(), 6), round(self.Width, 6))
         self.assertEqual(round(self.mask.getHeight(), 6), round(self.Height, 6))
 
     def test_modify(self):
-        '''Test that we can modify params'''
+        """Test that we can modify params"""
         X = _random_float() * _random_integer()
         Y = _random_float() * _random_integer()
         Width = _random_float() * _random_integer()
@@ -312,14 +314,14 @@ class TestPrimitives_Ellipse(unittest.TestCase):
         cls.ellipse = primitives.Ellipse(X=cls.X, Y=cls.Y, RadiusX=cls.RadiusX, RadiusY=cls.RadiusY)
 
     def test_create(self):
-        '''Test that we can create an Ellipse object'''
+        """Test that we can create an Ellipse object"""
         self.assertEqual(round(self.ellipse.getX(), 6), round(self.X, 6))
         self.assertEqual(round(self.ellipse.getY(), 6), round(self.Y, 6))
         self.assertEqual(round(self.ellipse.getRadiusX(), 6), round(self.RadiusX, 6))
         self.assertEqual(round(self.ellipse.getRadiusY(), 6), round(self.RadiusY, 6))
 
     def test_modify(self):
-        '''Test that we can modify params'''
+        """Test that we can modify params"""
         X = _random_float() * _random_integer()
         Y = _random_float() * _random_integer()
         RadiusX = _random_float() * _random_integer()
@@ -343,12 +345,12 @@ class TestPrimitives_Point(unittest.TestCase):
         cls.point = primitives.Point(X=cls.X, Y=cls.Y)
 
     def test_create(self):
-        '''Test that we can create a Point object'''
+        """Test that we can create a Point object"""
         self.assertEqual(round(self.point.getX(), 6), round(self.X, 6))
         self.assertEqual(round(self.point.getY(), 6), round(self.Y, 6))
 
     def test_modify(self):
-        '''Test that we can modify params'''
+        """Test that we can modify params"""
         X = _random_float() * _random_integer()
         Y = _random_float() * _random_integer()
         self.point.setX(X)
@@ -359,41 +361,45 @@ class TestPrimitives_Point(unittest.TestCase):
 
 
 class TestPrimitives_Polygon(unittest.TestCase):
-    '''Tests both primitives.Polyline and primitives.Polygon'''
+    """Tests both primitives.Polyline and primitives.Polygon"""
+
     @classmethod
     def setUpClass(cls):
         cls.points = [(_random_float() * _random_integer(), _random_float() * _random_integer()) for _ in range(4)]
         cls.polygon = primitives.Polygon()
 
     def test_create(self):
-        '''Test that we can create a Polygon object'''
+        """Test that we can create a Polygon object"""
         self.assertEqual(len(self.polygon.getPoints()), 0)
 
     def test_modify(self):
-        '''Test that we can modify params'''
+        """Test that we can modify params"""
         self.polygon.setPoints(self.points)
         # assertions
         self.assertEqual(len(self.polygon.getPoints()), 4)
 
     def test_swapXY(self):
-        '''Test that swapping X and Y works'''
+        """Test that swapping X and Y works"""
         self.polygon.setPoints(self.points, swapXY=True)
         swapped_points = map(lambda x: (x[1], x[0]), self.points)
-        self.assertItemsEqual(map(lambda p: (round(p[0], 6), round(p[1], 6)), self.polygon.getPoints()), map(lambda p: (round(p[0], 6), round(p[1], 6)), swapped_points))
+        self.assertItemsEqual(map(lambda p: (round(p[0], 6), round(p[1], 6)), self.polygon.getPoints()),
+                              map(lambda p: (round(p[0], 6), round(p[1], 6)), swapped_points))
 
     def test_offsetXFrom(self):
-        '''Test that we can define an X offset for point values'''
+        """Test that we can define an X offset for point values"""
         X_offset = _random_integer()
         self.polygon.setPoints(self.points, offsetXFrom=X_offset)
         offsetX_points = map(lambda p: (X_offset - p[0], p[1]), self.points)
-        self.assertItemsEqual(map(lambda p: (round(p[0], 6), round(p[1], 6)), self.polygon.getPoints()), map(lambda p: (round(p[0], 6), round(p[1], 6)), offsetX_points))
+        self.assertItemsEqual(map(lambda p: (round(p[0], 6), round(p[1], 6)), self.polygon.getPoints()),
+                              map(lambda p: (round(p[0], 6), round(p[1], 6)), offsetX_points))
 
     def test_offsetYFrom(self):
-        '''Test that we can define an Y offset for point values'''
+        """Test that we can define an Y offset for point values"""
         Y_offset = _random_integer()
         self.polygon.setPoints(self.points, offsetYFrom=Y_offset)
         offsetY_points = map(lambda p: (p[0], Y_offset - p[1]), self.points)
-        self.assertItemsEqual(map(lambda p: (round(p[0], 6), round(p[1], 6)), self.polygon.getPoints()), map(lambda p: (round(p[0], 6), round(p[1], 6)), offsetY_points))
+        self.assertItemsEqual(map(lambda p: (round(p[0], 6), round(p[1], 6)), self.polygon.getPoints()),
+                              map(lambda p: (round(p[0], 6), round(p[1], 6)), offsetY_points))
 
 
 class TestPrimitives_Label(unittest.TestCase):
@@ -405,13 +411,13 @@ class TestPrimitives_Label(unittest.TestCase):
         cls.label = primitives.Label(X=cls.X, Y=cls.Y, label=cls.label_text)
 
     def test_create(self):
-        '''Test that we can create a Point object'''
+        """Test that we can create a Point object"""
         self.assertEqual(round(self.label.getX(), 6), round(self.X, 6))
         self.assertEqual(round(self.label.getY(), 6), round(self.Y, 6))
         self.assertEqual(self.label.getTextValue(), self.label_text)
 
     def test_modify(self):
-        '''Test that we can modify params'''
+        """Test that we can modify params"""
         X = _random_float() * _random_integer()
         Y = _random_float() * _random_integer()
         label_text = "Another piece of label text"
@@ -429,17 +435,20 @@ class TestHandler_OMEROROI_attachROI(unittest.TestCase):
     def setUpClass(cls):
         cls.config_fn = os.path.join(TEST_DATA_PATH, 'configs', 'sffp.conf')
         args, configs = parse_args(shlex.split('list -I --config-path {}'.format(cls.config_fn)))
-        cls.connection = handlers.OMEROConnection(args, configs)
+        try:
+            cls.connection = handlers.OMEROConnection(args, configs)
+        except Exception as e:
+            raise e
 
     @classmethod
     def tearDownClass(cls):
         del cls.connection
 
     def test_attachRois(self):
-        '''Test that we can attach ROIs
+        """Test that we can attach ROIs
           
         Implicitly tests .saveRoi() method
-        '''
+        """
         from ..formats.roi import ROISegmentation
         args, configs = parse_args(shlex.split('attachroi --config-path {} file.roi'.format(self.config_fn)))
         roi_fn = os.path.join(TEST_DATA_PATH, 'roi', 'test_emd_1832.roi')
@@ -466,7 +475,7 @@ class TestHandler_OMEROROI_attachROI(unittest.TestCase):
         map(self.delete_rois, image_ids.values())
 
     def delete_rois(self, image_id):
-        '''Delete all ROIs'''
+        """Delete all ROIs"""
         with self.connection:
             rois = self.connection.getROIs(image_id)
             for roi in rois:
