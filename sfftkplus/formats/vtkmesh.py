@@ -684,6 +684,17 @@ class VTKHeader(Header):
         self._vtk_args = args
 
 
+
+def decode_lattice(lattice):
+    """Decodes a lattice by calling the decode method on a lattice object
+
+    Void function
+
+    :param lattice: :py:class:``sfftk.schema.SFFLattice`` object
+    """
+    lattice.decode()
+
+
 class VTKSegmentation(Segmentation):
     def __init__(self, sff_seg, args, configs):
         self._sff_seg = sff_seg  # the EMDB-SFF segmentation
@@ -701,7 +712,7 @@ class VTKSegmentation(Segmentation):
                 print_date("Decoding lattices in parallel...")
             lattices = parallelise(
                 self._sff_seg.lattices,
-                target=schema.decode_lattice,
+                target=decode_lattice,
             )
             # reconstitute into a dict
             self._lattices = dict(zip(map(lambda l: l.id, lattices), lattices))
