@@ -4,7 +4,7 @@ from setuptools import setup, find_packages
 
 from sfftkplus import SFFTKPLUS_VERSION
 
-with open('README.rst') as f:
+with open('README.md') as f:
     long_description = f.read()
 
 setup(
