@@ -783,7 +783,7 @@ class VTKSegmentation(Segmentation):
         }
         for segment in self.segments:
             for mesh in segment.meshes:
-                _xmin, _xmax, _ymin, _ymax, _zmin, _zmax = mesh.GetBounds()
+                _xmin, _xmax, _ymin, _ymax, _zmin, _zmax = mesh.vtk_obj.GetBounds()
                 _bounds['xmins'].append(_xmin)
                 _bounds['xmaxs'].append(_xmax)
                 _bounds['ymins'].append(_ymin)
