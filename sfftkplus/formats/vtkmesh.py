@@ -31,7 +31,7 @@ import numpy
 import vtk
 
 from sfftk import schema
-from sfftk.core.print_tools import print_date
+from sfftk.core.print_tools import print_date, print_static
 from sfftk.core.utils import parallelise
 from sfftk.readers.segreader import get_root
 from sfftkplus.formats.base import Segmentation, Header, Segment, Contours, Mesh
@@ -706,20 +706,28 @@ class VTKSegmentation(Segmentation):
         self._header = VTKHeader(self._sff_seg, self._vtk_args)
         self._segments = list()
         self._sliced_segments = list()
+        # 3D volume segmentations
         if self._vtk_args.primary_descriptor == "threeDVolume":
             self._lattices = dict()
             # decode lattices in parallel
-            if args.verbose:
-                print_date("Decoding lattices in parallel...")
-            lattices = parallelise(
-                self._sff_seg.lattices,
-                target=decode_lattice,
-                number_of_processes=10,
-            )
+            # if args.verbose:
+            #     print_date("Decoding lattices in parallel...")
+            # lattices = parallelise(
+            #     self._sff_seg.lattices,
+            #     target=decode_lattice,
+            #     number_of_processes=10,
+            # )
             # reconstitute into a dict
-            for lattice in lattices:
+            if args.verbose:
+                print_static("Decoding lattices...")
+            for lattice in self._sff_seg.lattices:
+                if args.verbose:
+                    print_static("Decoding lattice {}...".format(lattice.id))
+                lattice.decode()
+                print_date('', incl_date=False)
                 self._lattices[lattice.id] = lattice
-            # now we have the lattices decoded into 3D volumes, we need to compute the surfaces for each
+            # now we have the lattices decoded into 3D volumes,
+            # we need to compute the surfaces for each
             for segment in self._sff_seg.segments:
                 lattice = self._lattices[segment.volume.latticeId]
                 if lattice.is_binary:
@@ -729,12 +737,16 @@ class VTKSegmentation(Segmentation):
                 else:
                     lattice_data = lattice.data
                     if args.verbose:
-                        print_date("Non-binary lattice")
+                        print_static("Non-binary lattice: segment label #{}".format(int(segment.volume.value)))
                     # new mask
                     new_simplified_mask = numpy.ndarray(lattice_data.shape, dtype=int)
                     new_simplified_mask[:, :, :] = 0
                     # only the parts for this segment
                     new_simplified_mask = (lattice_data == int(segment.volume.value)) * int(segment.volume.value)
+                    if new_simplified_mask.sum() == 0:
+                        print_date('', incl_date=False)
+                        print_date('No data found for segment {}'.format(segment.id))
+                        continue
                 self._segments.append(
                     VTKSegment(
                         segment, self._vtk_args,
@@ -742,6 +754,7 @@ class VTKSegmentation(Segmentation):
                         lattice=new_simplified_mask
                     )
                 )
+            print_date('', incl_date=False)
         else:
             self._segments = map(lambda s: VTKSegment(s, self._vtk_args, transforms=self._sff_seg.transforms),
                                  self._sff_seg.segments)
