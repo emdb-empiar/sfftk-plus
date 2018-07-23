@@ -390,7 +390,7 @@ class VTKMesh(object):
         translation.Translate(*to)
         # transform filter
         transformFilter = vtk.vtkTransformFilter()
-        transformFilter.SetInputData(self)
+        transformFilter.SetInputData(self.vtk_obj)
         transformFilter.SetTransform(translation)
         transformFilter.Update()
         return transformFilter.GetOutput()
