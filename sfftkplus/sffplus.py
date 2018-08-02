@@ -225,7 +225,7 @@ def handle_createroi(args, configs):
         # export to file
         if args.verbose:
             print_date("Writing output to {}".format(args.output))
-        exit_status = roi_seg.export(args.output)
+        exit_status = roi_seg.export(args.output, args)
         if args.verbose:
             print_date("Done")
     elif re.match(r'.*\.roi$', args.sff_file, re.IGNORECASE):

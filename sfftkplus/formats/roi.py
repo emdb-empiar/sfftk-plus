@@ -445,7 +445,7 @@ class ROISegmentation(Segmentation):
             print_date("OK", incl_date=False)
         return omero_rois
 
-    def _export_rois_json(self, fn, orientation, fill_alpha=1.0, stroke_alpha=1.0, font_size=2.0,
+    def _export_rois_json(self, fn, orientation, args, fill_alpha=1.0, stroke_alpha=1.0, font_size=2.0,
                           stroke_colour=(0, 1, 0), stroke_width=0.22):
         """Export ROIs for this orientation as JSON (instead of as XML)
 
@@ -503,7 +503,6 @@ class ROISegmentation(Segmentation):
             return os.EX_DATAERR
         # stroke colour
         stroke_colour_ = rgba_to_hex(stroke_colour)
-        print(stroke_colour_)
         import json
         # x contours
         grouped_contours = dict()
@@ -588,20 +587,20 @@ class ROISegmentation(Segmentation):
                 json.dump([{"shapes": shapes}], f)
         return
 
-    def _export_json(self, fn, *args, **kwargs):
+    def _export_json(self, fn, args, *_args, **_kwargs):
         """Export ROIs as JSON formatted the way OMERO structures its JSONs
 
         :param fn: the root of the output file names; should contain two placeholders for the image ID (if it does not
         exist the orientation ('x', 'y', 'z') will be used instead; and the slice level value
-        :param args: positional arguments to be passed to the underlying ``_export_orientation_json()`` private method
-        :param kwargs: keyword arguments to be passed to the underlying ``_export_orientation_json() private method
+        :param _args: positional arguments to be passed to the underlying ``_export_orientation_json()`` private method
+        :param _kwargs: keyword arguments to be passed to the underlying ``_export_orientation_json() private method
         :return exit_status: the exit status (see Python's ``os`` module for details
         """
         for orientation in ORIENTATIONS:
-            exit_status = self._export_rois_json(fn, orientation, *args, **kwargs)
+            exit_status = self._export_rois_json(fn, orientation, args, *_args, **_kwargs)
         return exit_status
 
-    def export(self, fn, *args, **kwargs):
+    def export(self, fn, args, *_args, **_kwargs):
         """Export ROIs as a file
 
         The file extension determines the file format:
@@ -614,15 +613,24 @@ class ROISegmentation(Segmentation):
 
         :param fn: the output file name; the extension is important
         :param args: positional arguments to be passed on
-        :param kwargs: keyword arguments to be passed on
+        :param _kwargs: keyword arguments to be passed on
         :return: None
         """
         import re
+        # create the path if it doesn't exist
+        path = os.path.dirname(fn)
+        if not os.path.exists(path):
+            if args.verbose:
+                print_date("Path not found: {}. It will be created".format(path))
+            os.makedirs(path)
+        else:
+            if args.verbose:
+                print_date("Path found: {}".format(path))
         if re.match(r".*\.roi$", fn, re.IGNORECASE):
             with open(fn, 'w') as f:
                 self.roi_seg.set_image_ids(self.header.convert())
-                version = kwargs.get('version') if 'version' in kwargs else "1.0"
-                encoding = kwargs.get('encoding') if 'encoding' in kwargs else "UTF-8"
+                version = _kwargs.get('version') if 'version' in _kwargs else "1.0"
+                encoding = _kwargs.get('encoding') if 'encoding' in _kwargs else "UTF-8"
                 f.write('<?xml version="{}" encoding="{}"?>\n'.format(version, encoding))
                 self.roi_seg.export(f, 0)
             exit_status = os.EX_OK
@@ -631,4 +639,4 @@ class ROISegmentation(Segmentation):
             # written; rather, the filename conveys: i) the filename base; ii) the output format
             # the fn_root var is constructed from the fn argument
             fn_root = '.'.join(fn.split('.')[:-1]) + '-{}-{}.json'
-            return self._export_json(fn_root, *args, **kwargs)
+            return self._export_json(fn_root, args, *_args, **_kwargs)
