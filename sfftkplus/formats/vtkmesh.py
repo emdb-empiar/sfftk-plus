@@ -865,7 +865,7 @@ class VTKSegmentation(Segmentation):
         iren.Start()
         print_date("3D view completed.")
 
-    def export(self, fn, args):
+    def export(self, fn, args, configs):
         json_data = dict()
         json_data['segments'] = list()
         center_point = self.center_point

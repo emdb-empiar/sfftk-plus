@@ -225,7 +225,7 @@ def handle_createroi(args, configs):
         # export to file
         if args.verbose:
             print_date("Writing output to {}".format(args.output))
-        exit_status = roi_seg.export(args.output, args)
+        exit_status = roi_seg.export(args.output, args, configs)
         if args.verbose:
             print_date("Done")
     elif re.match(r'.*\.roi$', args.sff_file, re.IGNORECASE):
@@ -240,7 +240,7 @@ def handle_createroi(args, configs):
         # export to file
         if args.verbose:
             print_date("Writing output to {}".format(args.output))
-        exit_status = roi_seg.export(args.output)
+        exit_status = roi_seg.export(args.output, args, configs)
         if args.verbose:
             print_date("Done")
     else:
@@ -293,7 +293,7 @@ def handle_export(args, configs):
         return 1
     vtk_seg = sff_seg.as_vtk(args, configs)
     out_fn = os.path.basename(".".join(args.sff_file.split('.')[:-1]))
-    vtk_seg.export(out_fn, args)
+    vtk_seg.export(out_fn, args, configs)
     return 0
 
 

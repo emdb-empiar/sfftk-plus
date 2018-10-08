@@ -527,10 +527,10 @@ def parse_args(_args):
         if _args[0] == "tests":
             pass
         elif _args[0] == '-V' or _args[0] == '--version':
-            from .. import SFFTKPLUS_VERSION, EMDB_SFF_VERSION
-            print_date("sfftk-plus version: {} for EMDB-SFF version: {}".format(SFFTKPLUS_VERSION, EMDB_SFF_VERSION))
+            from .. import SFFTKPLUS_VERSION
+            print_date("sfftk-plus version: {}".format(SFFTKPLUS_VERSION))
             sys.exit(os.EX_USAGE)
-        elif _args[0] in Parser._actions[1].choices.keys():
+        elif _args[0] in Parser._actions[2].choices.keys():
             exec ('{}_parser.print_help()'.format(_args[0]))
             sys.exit(os.EX_USAGE)
 
