@@ -21,7 +21,7 @@ See the License for the specific language governing permissions
 and limitations under the License.
 """
 
-from __future__ import division
+from __future__ import division, print_function
 
 import os
 import sys
@@ -54,7 +54,7 @@ def get_image_id(cursor, image_name_root, view, ext='map', quick_pick=None):
     try:
         assert isinstance(cursor, psycopg2.extensions.cursor)
     except AssertionError:
-        print_date("Not pyscopg2.extensions.cursor object: {}".format(cursor))
+        print_date("Not psycopg2.extensions.cursor object: {}".format(cursor))
         sys.exit(1)
     views = ['top', 'front', 'side']
     try:
@@ -83,6 +83,22 @@ def get_image_id(cursor, image_name_root, view, ext='map', quick_pick=None):
                 return 0
     else:
         print_date("No image IDs found for view '{}'".format(view))
+        return 0
+
+
+def get_image_size(cursor, image_id):
+    """Obtain image dimensions
+
+    :param cursor: cursor to postgres connection
+    :param image_id: a valid image id
+    :return tuple image_ids: (sizex, sizey, sizez)
+    """
+    query_string = "select sizex, sizey, sizez from pixels where id={}".format(image_id)
+    cursor.execute(query_string)
+    rows = cursor.fetchall()
+    if rows:
+        return rows[0]
+    else:
         return 0
 
 
@@ -356,6 +372,20 @@ class ROIHeader(Header):
         #             sys.exit(1)
         self._right_id = value
 
+    def get_image_size(self, args, configs):
+        cw = configs['CONNECT_WITH']  # either LOCAL or REMOTE
+        # server settings
+        conn_str = "dbname='{}' user='{}' password='{}' host='{}' port='{}'".format(
+            configs['IMAGE_DB_{}_NAME'.format(cw)],
+            configs['IMAGE_DB_{}_USER'.format(cw)],
+            configs['IMAGE_DB_{}_PASS'.format(cw)],
+            configs['IMAGE_DB_{}_HOST'.format(cw)],
+            configs['IMAGE_DB_{}_PORT'.format(cw)],
+        )
+        conn = psycopg2.connect(conn_str)
+        cur = conn.cursor()
+        return get_image_size(cur, self.top_id)
+
     def convert(self, *args, **kwargs):
         if all([self.top_id, self.front_id, self.right_id]):
             image_ids = roi.image_idsType()
@@ -445,11 +475,11 @@ class ROISegmentation(Segmentation):
             print_date("OK", incl_date=False)
         return omero_rois
 
-    def _export_rois_json(self, fn, orientation, args, fill_alpha=1.0, stroke_alpha=1.0, font_size=2.0,
+    def _export_rois_json(self, path, fn_root, orientation, args, configs, fill_alpha=1.0, stroke_alpha=1.0, font_size=2.0,
                           stroke_colour=(0, 1, 0), stroke_width=0.22):
         """Export ROIs for this orientation as JSON (instead of as XML)
 
-        :param fn: the output file name root; the image ID (or orientation) and the slice value will be included
+        :param fn_root: the output file name root; the image ID (or orientation) and the slice value will be included
         :param orientation: character specifying the orientation; either 'x', 'y', or 'z'
         :param fill_alpha: the alpha value for the shape fill; default 1.0
         :param stroke_alpha: the alpha value for the shape stroke; default 1.0
@@ -526,6 +556,8 @@ class ROISegmentation(Segmentation):
                     grouped_contours[o][segment.id]['contours'] = [contour]
                 else:
                     grouped_contours[o][segment.id]['contours'] += [contour]
+        # image size
+        sizeX, sizeY, sizeZ = self.header.get_image_size(args, configs)
         # we write a json file for each slice
         for o, segment in grouped_contours.iteritems():
             shapes = list()
@@ -536,16 +568,16 @@ class ROISegmentation(Segmentation):
                     for point_id, point in contour.iteritems():
                         if point_id == 0:
                             if orientation == 'x':
-                                point_str += 'M {:.2f} {:.2f} '.format(point[1], point[2])
+                                point_str += 'M {:.2f} {:.2f} '.format(point[1], sizeX - point[2])
                             elif orientation == 'y':
-                                point_str += 'M {:.2f} {:.2f} '.format(point[0], point[2])
+                                point_str += 'M {:.2f} {:.2f} '.format(sizeX - point[0], sizeY - point[2])
                             elif orientation == 'z':
                                 point_str += 'M {:.2f} {:.2f} '.format(point[1], point[0])
                         else:
                             if orientation == 'x':
-                                point_str += 'L {:.2f} {:.2f} '.format(point[1], point[2])
+                                point_str += 'L {:.2f} {:.2f} '.format(point[1], sizeX - point[2])
                             elif orientation == 'y':
-                                point_str += 'L {:.2f} {:.2f} '.format(point[0], point[2])
+                                point_str += 'L {:.2f} {:.2f} '.format(sizeX - point[0], sizeY - point[2])
                             elif orientation == 'z':
                                 point_str += 'L {:.2f} {:.2f} '.format(point[1], point[0])
                     # if the last contour point is the same as the first the it is closed
@@ -569,25 +601,33 @@ class ROISegmentation(Segmentation):
             # write the shapes for this slice
             if orientation == 'x':
                 if self.roi_seg.image_ids.front is not None:
-                    ofn = fn.format(self.roi_seg.image_ids.front, o)
+                    odir = str(self.roi_seg.image_ids.front)
+                    ofn = fn_root.format(self.roi_seg.image_ids.front, o)
                 else:
-                    ofn = fn.format(orientation, o)
+                    odir = orientation
+                    ofn = fn_root.format(orientation, o)
             elif orientation == 'y':
                 if self.roi_seg.image_ids.right is not None:
-                    ofn = fn.format(self.roi_seg.image_ids.right, o)
+                    odir = str(self.roi_seg.image_ids.right)
+                    ofn = fn_root.format(self.roi_seg.image_ids.right, o)
                 else:
-                    ofn = fn.format(orientation, o)
+                    odir = orientation
+                    ofn = fn_root.format(orientation, o)
             elif orientation == 'z':
                 if self.roi_seg.image_ids.top is not None:
-                    ofn = fn.format(self.roi_seg.image_ids.top, o)
+                    odir = str(self.roi_seg.image_ids.top)
+                    ofn = fn_root.format(self.roi_seg.image_ids.top, o)
                 else:
-                    ofn = fn.format(orientation, o)
+                    odir = orientation
+                    ofn = fn_root.format(orientation, o)
             # write out the JSON for this orientation and this slice
-            with open(ofn, 'w') as f:
+            if not os.path.exists(os.path.join(path, odir)):
+                os.makedirs(os.path.join(path, odir), 0755)
+            with open(os.path.join(path, odir, ofn), 'w') as f:
                 json.dump([{"shapes": shapes}], f)
         return
 
-    def _export_json(self, fn, args, *_args, **_kwargs):
+    def _export_json(self, path, fn_root, args, configs, *_args, **_kwargs):
         """Export ROIs as JSON formatted the way OMERO structures its JSONs
 
         :param fn: the root of the output file names; should contain two placeholders for the image ID (if it does not
@@ -597,10 +637,10 @@ class ROISegmentation(Segmentation):
         :return exit_status: the exit status (see Python's ``os`` module for details
         """
         for orientation in ORIENTATIONS:
-            exit_status = self._export_rois_json(fn, orientation, args, *_args, **_kwargs)
+            exit_status = self._export_rois_json(path, fn_root, orientation, args, configs, *_args, **_kwargs)
         return exit_status
 
-    def export(self, fn, args, *_args, **_kwargs):
+    def export(self, fn, args, configs, *_args, **_kwargs):
         """Export ROIs as a file
 
         The file extension determines the file format:
@@ -622,7 +662,7 @@ class ROISegmentation(Segmentation):
         if not os.path.exists(path):
             if args.verbose:
                 print_date("Path not found: {}. It will be created".format(path))
-            os.makedirs(path)
+            os.makedirs(path, 0755)
         else:
             if args.verbose:
                 print_date("Path found: {}".format(path))
@@ -638,5 +678,6 @@ class ROISegmentation(Segmentation):
             # in the case of outputing JSON the provided filename is not the actual filename into which data will be
             # written; rather, the filename conveys: i) the filename base; ii) the output format
             # the fn_root var is constructed from the fn argument
-            fn_root = '.'.join(fn.split('.')[:-1]) + '-{}-{}.json'
-            return self._export_json(fn_root, args, *_args, **_kwargs)
+            fn_base = os.path.basename(fn)
+            fn_root = '.'.join(fn_base.split('.')[:-1]) + '-{}-{}.json'
+            return self._export_json(path, fn_root, args, configs, *_args, **_kwargs)
