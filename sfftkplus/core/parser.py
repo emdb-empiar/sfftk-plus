@@ -244,71 +244,82 @@ config_subparsers = config_parser.add_subparsers(
 )
 
 # =============================================================================
-# config: list
-# =============================================================================
-list_configs_parser = config_subparsers.add_parser(
-    'list',
-    description="List sfftkplus configuration parameters",
-    help="list sfftkplus configs"
-)
-add_args(list_configs_parser, config_path)
-add_args(list_configs_parser, shipped_configs)
-
-# =============================================================================
 # config: get
 # =============================================================================
-get_configs_parser = config_subparsers.add_parser(
+get_config_parser = config_subparsers.add_parser(
     'get',
     description='Get the value of a single configuration parameter',
-    help='get single sfftkplus config'
+    help='get single sfftk-plus config'
 )
-get_configs_parser.add_argument(
-    'name', help="the name of the argument to retrieve"
+get_config_parser.add_argument(
+    'name',
+    nargs="?",
+    default=None,
+    help="the name of the argument to retrieve",
 )
-add_args(get_configs_parser, config_path)
-add_args(get_configs_parser, shipped_configs)
+add_args(get_config_parser, config_path)
+add_args(get_config_parser, shipped_configs)
+get_config_parser.add_argument(
+    '-a', '--all',
+    action='store_true',
+    default=False,
+    help='get all configs'
+)
+add_args(get_config_parser, verbose)
 
 # =============================================================================
 # config: set
 # =============================================================================
-set_configs_parser = config_subparsers.add_parser(
+set_config_parser = config_subparsers.add_parser(
     'set',
     description='Set the value of a single configuration parameter',
-    help='set single sfftkplus config'
+    help='set single sfftk-plus config'
 )
-set_configs_parser.add_argument(
+set_config_parser.add_argument(
     'name', help="the name of the argument to set",
 )
-set_configs_parser.add_argument(
+set_config_parser.add_argument(
     'value', help="the value of the argument to set",
 )
-add_args(set_configs_parser, config_path)
-add_args(set_configs_parser, shipped_configs)
+add_args(set_config_parser, config_path)
+add_args(set_config_parser, shipped_configs)
+add_args(set_config_parser, verbose)
+set_config_parser.add_argument(
+    '-f', '--force',
+    action='store_true',
+    default=False,
+    help='force overwriting of an existing config; do not ask to confirm [default: False]'
+)
 
 # =============================================================================
 # config: del
 # =============================================================================
-del_configs_parser = config_subparsers.add_parser(
+del_config_parser = config_subparsers.add_parser(
     'del',
     description='Delete the named configuration parameter',
-    help='delete single sfftkplus config'
+    help='delete single sfftk-plus config'
 )
-del_configs_parser.add_argument(
-    'name', help="the name of the argument to be deleted"
+del_config_parser.add_argument(
+    'name',
+    nargs='?',
+    default=None,
+    help="the name of the argument to be deleted"
 )
-add_args(del_configs_parser, config_path)
-add_args(del_configs_parser, shipped_configs)
-
-# =============================================================================
-# config: clear
-# =============================================================================
-clear_configs_parser = config_subparsers.add_parser(
-    'clear',
-    description='Clear all configuration parameters',
-    help='clear all sfftkplus configs'
+add_args(del_config_parser, config_path)
+add_args(del_config_parser, shipped_configs)
+del_config_parser.add_argument(
+    '-a', '--all',
+    action='store_true',
+    default=False,
+    help='delete all configs (asks the user to confirm before deleting) [default: False]'
 )
-add_args(clear_configs_parser, config_path)
-add_args(clear_configs_parser, shipped_configs)
+del_config_parser.add_argument(
+    '-f', '--force',
+    action='store_true',
+    default=False,
+    help='force deletion; do not ask to confirm deletion [default: False]'
+)
+add_args(del_config_parser, verbose)
 
 # ===============================================================================
 # list subparser
@@ -355,7 +366,7 @@ createroi_parser.add_argument(*verbose['args'], **verbose['kwargs'])
 # mutex parser group
 image_name_root_or_xyz_createroi_parser = createroi_parser.add_mutually_exclusive_group()
 image_name_root_or_xyz_createroi_parser.add_argument('-I', '--image-name-root',
-                              help="the root name of the file in OMERO; e.g. 'emd_1080-top.map' has image root 'emd_1080'")
+                                                     help="the root name of the file in OMERO; e.g. 'emd_1080-top.map' has image root 'emd_1080'")
 image_name_root_or_xyz_createroi_parser.add_argument(
     '--top-front-right',
     nargs=3,
@@ -536,15 +547,65 @@ def parse_args(_args):
 
     # parse args
     args = Parser.parse_args(_args)
-    from sfftk.core.configs import load_configs
+    from sfftk.core.configs import get_config_file_path, load_configs
     from .configs import SFFPConfigs
-    configs = load_configs(
-        args,
-        user_folder=".sfftkplus",
-        conf_fn="sffp.conf",
-        config_class=SFFPConfigs
-    )
-    if args.subcommand == 'list':
+    config_file_path = get_config_file_path(args, user_conf_fn='sffp.conf', user_folder='~/.sfftkplus',
+                                            config_class=SFFPConfigs)
+    configs = load_configs(config_file_path, config_class=SFFPConfigs)
+    # config
+    if args.subcommand == 'config':
+        if args.verbose:
+            print_date("Reading configs from {}...".format(config_file_path))
+            # handle config-specific argument modifications here
+        if args.config_subcommand == 'del':
+            if args.name not in configs:
+                print_date("Missing config with name '{}'. Aborting...".format(args.name))
+                return None, configs
+            # if force pass
+            if not args.force:
+                default_choice = 'n'
+                # get user choice
+                user_choice = raw_input("Are you sure you want to delete config '{}' [y/N]? ".format(
+                    args.name)).lower()
+                if user_choice == '':
+                    choice = default_choice
+                elif user_choice == 'n' or user_choice == 'N':
+                    choice = 'n'
+                elif user_choice == 'y' or user_choice == 'Y':
+                    choice = 'y'
+                else:
+                    print_date("Invalid choice: '{}'")
+                    return None, configs
+                # act on user choice
+                if choice == 'n':
+                    print_date("You have opted to cancel deletion of '{}'".format(args.name))
+                    return None, configs
+                elif choice == 'y':
+                    pass
+        elif args.config_subcommand == 'set':
+            if args.name in configs:
+                # if force pass
+                if not args.force:
+                    default_choice = 'n'
+                    # get user choice
+                    user_choice = raw_input("Are you sure you want to overwrite config '{}={}' [y/N]? ".format(
+                        args.name, configs[args.name])).lower()
+                    if user_choice == '':
+                        choice = default_choice
+                    elif user_choice == 'n' or user_choice == 'N':
+                        choice = 'n'
+                    elif user_choice == 'y' or user_choice == 'Y':
+                        choice = 'y'
+                    else:
+                        print_date("Invalid choice: '{}'")
+                        return None, configs
+                    # act on user choice
+                    if choice == 'n':
+                        print_date("You have opted to cancel overwriting of '{}'".format(args.name))
+                        return None, configs
+                    elif choice == 'y':
+                        pass
+    elif args.subcommand == 'list':
         # enforce local if specified
         if args.local:
             configs['CONNECT_WITH'] = 'LOCAL'
@@ -594,7 +655,7 @@ def parse_args(_args):
                        "'a' in ['a', 'b'] is 1 (one).")
             return None, configs
         else:
-            args.quick_pick -= 1 # make it a 0-based index for internal use
+            args.quick_pick -= 1  # make it a 0-based index for internal use
 
         # if we don't have --top-front-right set
         # then we can choose a default for -I/--image-name-root
@@ -643,7 +704,7 @@ def parse_args(_args):
                 assert args.verbosity in range(4)
             except:
                 raise ValueError("Verbosity should be in %s-%s: %s given" % (
-                verbosity_range[0], verbosity_range[-1], args.verbosity))
+                    verbosity_range[0], verbosity_range[-1], args.verbosity))
 
     # view3d
     elif args.subcommand == 'view3d':
@@ -665,7 +726,7 @@ def parse_args(_args):
         # don't specify -A and -X, -Y, and/or -Z
         if args.all_contours or args.x_contours or args.y_contours or args.z_contours:
             assert (args.all_contours and not (args.x_contours or args.y_contours or args.z_contours)) or (
-            not args.all_contours and (args.x_contours or args.y_contours or args.z_contours))
+                    not args.all_contours and (args.x_contours or args.y_contours or args.z_contours))
 
         # cube axes validity
         assert (0 <= args.cube_axes <= 4) or (args.cube_axes is None)

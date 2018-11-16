@@ -11,6 +11,7 @@ __email__ = 'pkorir@ebi.ac.uk, paul.korir@gmail.com'
 __date__ = '2016-08-23'
 
 
+import sys
 import os.path
 
 from sfftk.core.configs import Configs
