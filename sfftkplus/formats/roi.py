@@ -103,19 +103,21 @@ def get_image_size(cursor, image_id):
 
 
 class ROIContours(Contours):
-    def __init__(self, contours=None):
-        if contours:
-            self._contours = contours
-            self._x_contours = self._contours.xContours.contour
-            self._y_contours = self._contours.yContours.contour
-            self._z_contours = self._contours.zContours.contour
+    def __init__(self, contour_sets):
+        x_contours = list()
+        y_contours = list()
+        z_contours = list()
+        for contour_set in contour_sets:
+            x_contours += contour_set.x_contours
+            y_contours += contour_set.y_contours
+            z_contours += contour_set.z_contours
+        self._x_contours = x_contours
+        self._y_contours = y_contours
+        self._z_contours = z_contours
 
     @classmethod
-    def from_vtk(cls, vtk_seg):
-        obj = cls()
-        obj.x_contours = vtk_seg.x_contours
-        obj.y_contours = vtk_seg.y_contours
-        obj.z_contours = vtk_seg.z_contours
+    def from_vtk(cls, contour_sets):
+        obj = cls(contour_sets)
         return obj
 
     @property
@@ -203,7 +205,7 @@ class ROISegment(Segment):
         obj = cls()
         obj.id = vtk_seg.id
         obj.colour = vtk_seg.colour
-        obj.contours = ROIContours.from_vtk(vtk_seg.contours[0])
+        obj.contours = ROIContours.from_vtk(vtk_seg.contours)
         return obj
 
     @property

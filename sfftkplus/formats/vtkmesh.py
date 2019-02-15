@@ -429,12 +429,12 @@ class VTKMesh(object):
             self.actor.GetProperty().EdgeVisibilityOn()
             self.actor.GetProperty().SetEdgeColor(*self.edge_colour)
         # lighting and shading
-        self.actor.GetProperty().SetInterpolationToPhong()
-        self.actor.GetProperty().SetDiffuse(0.7)
-        self.actor.GetProperty().SetSpecular(0.5)
-        self.actor.GetProperty().SetSpecularPower(40)
-        self.actor.GetProperty().BackfaceCullingOn()
-        self.actor.GetProperty().FrontfaceCullingOn()
+        # self.actor.GetProperty().SetInterpolationToPhong()
+        # self.actor.GetProperty().SetDiffuse(0.7)
+        # self.actor.GetProperty().SetSpecular(0.5)
+        # self.actor.GetProperty().SetSpecularPower(40)
+        # self.actor.GetProperty().BackfaceCullingOn()
+        # self.actor.GetProperty().FrontfaceCullingOn()
         return self.actor
 
 
@@ -489,7 +489,7 @@ class VTKContours(Contours):
         self._vtk_args = self._mesh.vtk_args
         self._colour = self._mesh.colour
         self._alpha = self._mesh.alpha
-        self._mesh.vtk_obj.ComputeBounds
+        self._mesh.vtk_obj.ComputeBounds()
         self.Xmin, self.Xmax, self.Ymin, self.Ymax, self.Zmin, self.Zmax = self._mesh.vtk_obj.GetBounds()
         # create orthogonal planes
         self._axes = ['x', 'y', 'z']
@@ -504,7 +504,7 @@ class VTKContours(Contours):
             d_hat[self._axes.index(d)] = 1
             self.__getattribute__('{}_plane'.format(d)).SetNormal(*d_hat)
         self._vtkcontours = self._build_vtkcontours()
-        self._contours = self._build_contours()
+        self._contour_set = self._build_contours()
         self._x_vtkcontours = None
         self._y_vtkcontours = None
         self._z_vtkcontours = None
@@ -551,18 +551,20 @@ class VTKContours(Contours):
         return cut_meshes
 
     def _build_contours(self):
-        contour_dict = dict()
+        contour_set = dict()
+        # for each of x, y, and z
         for d in self._axes:
+            # build a set of contours for each orientation
             contours = list()
-            for i in xrange(self._vtkcontours[d].vtk_obj.GetNumberOfCells()):
+            for i in range(self._vtkcontours[d].vtk_obj.GetNumberOfCells()):
                 cell = self._vtkcontours[d].vtk_obj.GetCell(i)
                 idList = cell.GetPointIds()
                 contour = dict()
-                for j in xrange(idList.GetNumberOfIds()):
+                for j in range(idList.GetNumberOfIds()):
                     contour[j] = self._vtkcontours[d].vtk_obj.GetPoint(idList.GetId(j))
                 contours.append(contour)
-            contour_dict[d] = contours
-        return contour_dict
+            contour_set[d] = contours
+        return contour_set
 
     @property
     def colour(self):
@@ -586,15 +588,15 @@ class VTKContours(Contours):
 
     @property
     def x_contours(self):
-        return self._contours['x']
+        return self._contour_set['x']
 
     @property
     def y_contours(self):
-        return self._contours['y']
+        return self._contour_set['y']
 
     @property
     def z_contours(self):
-        return self._contours['z']
+        return self._contour_set['z']
 
     def render(self, renderer):
         assert isinstance(renderer, vtk.vtkRenderer)
@@ -881,7 +883,7 @@ class VTKSegmentation(Segmentation):
                     to = (-x, -y, -z)
                     mesh2 = mesh.translate(to)
                 else:
-                    mesh2 = mesh
+                    mesh2 = mesh.vtk_obj
                 # decimate
                 decimateMesh = vtk.vtkDecimatePro()
                 decimateMesh.SetInputData(mesh2)
