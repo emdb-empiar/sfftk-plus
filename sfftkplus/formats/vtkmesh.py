@@ -30,9 +30,7 @@ from random import random
 import numpy
 import vtk
 
-from sfftk import schema
 from sfftk.core.print_tools import print_date, print_static
-from sfftk.core.utils import parallelise
 from sfftk.readers.segreader import get_root
 from sfftkplus.formats.base import Segmentation, Header, Segment, Contours, Mesh
 
@@ -139,6 +137,17 @@ class VTKMesh(object):
     def transparency(self):
         return self._vtk_args.transparency
 
+    @staticmethod
+    def transform_point(point, transform):
+        """Apply the 3x4 transformation matrix to the 3-point
+
+        :param point: tuple of 3 numbers
+        :param transform: a 3x4 matrix
+        :return point_transformed: the transformed point
+        """
+        point_transformed = transform.dot(numpy.array([list(point) + [1.0]]).T)
+        return tuple(point_transformed.reshape(1, 3).flatten().tolist())
+
     @classmethod
     def from_mesh(cls, sff_mesh, colour, args, *args_, **kwargs_):
         """Initialiase a VTKMesh object from a ``sfftk.schema.SFFMesh``
@@ -153,12 +162,16 @@ class VTKMesh(object):
         :rtype vtkmesh: ``VTKMesh``  
         """
         # for each vertex in this mesh
+        transform = kwargs_['transforms'][0].data_array
+        # print('transforms = ', transform)
+        # print('transformed (1, 1, 1) = ', cls.transform_point([1, 1, 1], transform))
         vertices = dict()
         vertex_ids = list()
         normals = dict()
         normal_ids = list()
         for v in sff_mesh.vertices:
             if v.designation == 'surface':
+                # vertices[v.vID] = cls.transform_point(v.point, transform) # apply the first transform
                 vertices[v.vID] = v.point
                 vertex_ids.append(v.vID)
             elif v.designation == 'normal':
@@ -452,7 +465,7 @@ class VTKMeshes(Mesh):
         if self.primary_descriptor == "meshList":
             for mesh in self._sff_segment.meshes:
                 self._vtk_meshes.append(
-                    VTKMesh.from_mesh(mesh, self.colour, self._vtk_args)
+                    VTKMesh.from_mesh(mesh, self.colour, self._vtk_args, *args_, **kwargs_)
                 )
         elif self.primary_descriptor == "shapePrimitiveList":
             for shape in self._sff_segment.shapes:

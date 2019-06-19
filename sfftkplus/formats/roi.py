@@ -6,18 +6,18 @@ sfftkplus.formats.roi
 
 
 Copyright 2017 EMBL - European Bioinformatics Institute
-Licensed under the Apache License, Version 2.0 (the "License"); 
-you may not use this file except in compliance with the License. 
-You may obtain a copy of the License at 
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
 
 http://www.apache.org/licenses/LICENSE-2.0
 
-Unless required by applicable law or agreed to in writing, software 
-distributed under the License is distributed on an 
-"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, 
-either express or implied. 
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an
+"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
+either express or implied.
 
-See the License for the specific language governing permissions 
+See the License for the specific language governing permissions
 and limitations under the License.
 """
 
@@ -43,7 +43,7 @@ ORIENTATIONS = ['x', 'y', 'z']
 
 def get_image_id(cursor, image_name_root, view, ext='map', quick_pick=None):
     """Obtain the image IDs for top, front and right images by EMDB accession code
-    
+
     :param cursor: cursor to postgres connection
     :type cursor: psycopg2.Cursor
     :param str image_name_root: accession code in lowercase e.g. 'emd_1080'
@@ -478,7 +478,7 @@ class ROISegmentation(Segmentation):
         return omero_rois
 
     def _export_rois_json(self, path, fn_root, orientation, args, configs, fill_alpha=1.0, stroke_alpha=1.0, font_size=2.0,
-                          stroke_colour=(0, 1, 0), stroke_width=0.22):
+                          stroke_colour=(1, 1, 0), stroke_width=0.22):
         """Export ROIs for this orientation as JSON (instead of as XML)
 
         :param fn_root: the output file name root; the image ID (or orientation) and the slice value will be included
@@ -560,6 +560,12 @@ class ROISegmentation(Segmentation):
                     grouped_contours[o][segment.id]['contours'] += [contour]
         # image size
         sizeX, sizeY, sizeZ = self.header.get_image_size(args, configs)
+        max_size = max([sizeX, sizeY, sizeZ])
+        stroke_width = round(0.24 / 100 * max_size, 3) # where 0.12 was obtained from having 0.22 in an image with 191px
+        # y-shifts: since the image is vertically centered we need to adjust y coords for front (x) and right (y) points
+        top_y_shift = 0.5 * (sizeX - sizeY)
+        front_y_shift = 0.5 * (sizeY - sizeZ)
+        right_y_shift = 0.5 * (sizeX - sizeZ)
         # we write a json file for each slice
         for o, segment in grouped_contours.iteritems():
             shapes = list()
@@ -570,16 +576,16 @@ class ROISegmentation(Segmentation):
                     for point_id, point in contour.iteritems():
                         if point_id == 0:
                             if orientation == 'x':
-                                point_str += 'M {:.2f} {:.2f} '.format(point[1], sizeX - point[2])
+                                point_str += 'M {:.2f} {:.2f} '.format(point[1], sizeZ - point[2])
                             elif orientation == 'y':
-                                point_str += 'M {:.2f} {:.2f} '.format(sizeX - point[0], sizeY - point[2])
+                                point_str += 'M {:.2f} {:.2f} '.format(sizeX - point[0], sizeZ - point[2])
                             elif orientation == 'z':
                                 point_str += 'M {:.2f} {:.2f} '.format(point[1], point[0])
                         else:
                             if orientation == 'x':
-                                point_str += 'L {:.2f} {:.2f} '.format(point[1], sizeX - point[2])
+                                point_str += 'L {:.2f} {:.2f} '.format(point[1], sizeZ - point[2])
                             elif orientation == 'y':
-                                point_str += 'L {:.2f} {:.2f} '.format(sizeX - point[0], sizeY - point[2])
+                                point_str += 'L {:.2f} {:.2f} '.format(sizeX - point[0], sizeZ - point[2])
                             elif orientation == 'z':
                                 point_str += 'L {:.2f} {:.2f} '.format(point[1], point[0])
                     # if the last contour point is the same as the first the it is closed
