@@ -1,0 +1,5 @@
+[run]
+omit =
+	sfftkplus/unittests/*
+	sfftkplus/test_data/*
+	sfftkplus/omero/*

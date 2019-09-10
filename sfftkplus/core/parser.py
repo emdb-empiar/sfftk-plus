@@ -2,6 +2,7 @@
 # parser.py
 """Parses command-line options"""
 from __future__ import print_function
+
 import argparse
 import os
 import sys
@@ -71,7 +72,7 @@ format_ = {
     'args': ['-f', '--format'],
     'kwargs': {
         'default': FORMAT_LIST[0][0],
-        'choices': map(lambda f: f[0], FORMAT_LIST),
+        'choices': list(map(lambda f: f[0], FORMAT_LIST)),
         'help': "output file format; valid options are: {} [default: roi]".format(
             ", ".join(map(lambda x: "{} ({})".format(x[0], x[1]), FORMAT_LIST))
         ),
@@ -497,12 +498,12 @@ add_args(export_parser, transparency)
 add_args(export_parser, center)
 
 # get the full list of tools from the Parser object
-tool_list = ['core', 'formats', 'omero', 'readers', 'schema', 'main']
+tool_list = ['all', 'core', 'formats', 'omero', 'readers', 'schema', 'main']
 
 # tests
 test_help = "one or none of the following: {}".format(", ".join(tool_list))
 tests_parser = subparsers.add_parser('tests', description="Run unit tests", help="run unit tests")
-tests_parser.add_argument('tool', nargs='*', default='all', help=test_help)
+tests_parser.add_argument('tool', nargs='+', help=test_help)
 tests_parser.add_argument('-v', '--verbosity', default=1, type=int,
                           help="set verbosity; valid values: %s [default: 0]" % ", ".join(map(str, verbosity_range)))
 add_args(tests_parser, config_path)
@@ -514,18 +515,27 @@ add_args(tests_parser, shipped_configs)
 # test_parser.add_argument('-v', '--verbosity', default=1, type=int, help="set verbosity; valid values: %s [default: 0]" % ", ".join(map(str, verbosity_range)))
 
 
-def parse_args(_args):
+def parse_args(_args, use_shlex=False):
     """
     Parse and check command-line arguments
     
     Subcommand handlers defined in __main__.py (e.g. handle_conver(...)) should not have to check arguments for consistency
     
-    :param list _args: list of arguments
+    :param str _args: command string
     :return: parsed arguments
     :rtype: `argparse.Namespace`
     :return: config dict-like object
     :rtype: ``sfftk.core.configs.Config``
     """
+    # use shlex
+    if use_shlex:
+        try:
+            assert isinstance(_args, str)
+        except AssertionError:
+            return os.EX_USAGE, None
+        import shlex
+        _args = shlex.split(_args)
+
     """
     :TODO: handle credentials in configs here instead of sffplus.py
     """
@@ -535,14 +545,12 @@ def parse_args(_args):
         sys.exit(0)
     # if we only have a subcommand then show that subcommand's help
     elif len(_args) == 1:
-        if _args[0] == "tests":
-            pass
-        elif _args[0] == '-V' or _args[0] == '--version':
+        if _args[0] == '-V' or _args[0] == '--version':
             from .. import SFFTKPLUS_VERSION
             print_date("sfftk-plus version: {}".format(SFFTKPLUS_VERSION))
             sys.exit(os.EX_USAGE)
         elif _args[0] in Parser._actions[2].choices.keys():
-            exec ('{}_parser.print_help()'.format(_args[0]))
+            exec('{}_parser.print_help()'.format(_args[0]))
             sys.exit(os.EX_USAGE)
 
     # parse args
@@ -565,7 +573,7 @@ def parse_args(_args):
             if not args.force:
                 default_choice = 'n'
                 # get user choice
-                user_choice = raw_input("Are you sure you want to delete config '{}' [y/N]? ".format(
+                user_choice = input("Are you sure you want to delete config '{}' [y/N]? ".format(
                     args.name)).lower()
                 if user_choice == '':
                     choice = default_choice
@@ -588,7 +596,7 @@ def parse_args(_args):
                 if not args.force:
                     default_choice = 'n'
                     # get user choice
-                    user_choice = raw_input("Are you sure you want to overwrite config '{}={}' [y/N]? ".format(
+                    user_choice = input("Are you sure you want to overwrite config '{}={}' [y/N]? ".format(
                         args.name, configs[args.name])).lower()
                     if user_choice == '':
                         choice = default_choice
@@ -691,20 +699,43 @@ def parse_args(_args):
 
     # tests
     elif args.subcommand == 'tests':
-        if isinstance(args.tool, list):
-            for tool in args.tool:
-                try:
-                    assert tool in tool_list
-                except AssertionError:
-                    print("Unknown tool: {}".format(tool), file=sys.stderr)
-                    print("Available tools for test: {}".format(", ".join(tool_list)), file=sys.stderr)
-
+        # normalise tool list
+        # if 'all' is specified together with others then it should simply be 'all'
+        if 'all' in args.tool:
+            args.tool = ['all']
+        for tool in args.tool:
+            try:
+                assert tool in tool_list
+            except AssertionError:
+                print_date(
+                    "Unknown tool: {}; Available tools for test: {}".format(tool, ", ".join(tool_list))
+                )
+                return os.EX_USAGE, configs
+        # if isinstance(args.tool, list):
+        #     for tool in args.tool:
+        #         try:
+        #             assert tool in tool_list
+        #         except AssertionError:
+        #             print("Unknown tool: {}".format(tool), file=sys.stderr)
+        #             print("Available tools for test: {}".format(", ".join(tool_list)), file=sys.stderr)
         if args.verbosity:
             try:
                 assert args.verbosity in range(4)
             except:
-                raise ValueError("Verbosity should be in %s-%s: %s given" % (
-                    verbosity_range[0], verbosity_range[-1], args.verbosity))
+                print_date(
+                    "Verbosity should be in {}-{}: {} given".format(
+                        verbosity_range[0],
+                        verbosity_range[-1],
+                        args.verbosity
+                    )
+                )
+                return os.EX_USAGE, configs
+        # if args.verbosity:
+        #     try:
+        #         assert args.verbosity in range(4)
+        #     except:
+        #         raise ValueError("Verbosity should be in %s-%s: %s given" % (
+        #             verbosity_range[0], verbosity_range[-1], args.verbosity))
 
     # view3d
     elif args.subcommand == 'view3d':
@@ -729,6 +760,7 @@ def parse_args(_args):
                     not args.all_contours and (args.x_contours or args.y_contours or args.z_contours))
 
         # cube axes validity
-        assert (0 <= args.cube_axes <= 4) or (args.cube_axes is None)
+        if args.cube_axes is not None:
+            assert (0 <= args.cube_axes <= 4)
 
     return args, configs

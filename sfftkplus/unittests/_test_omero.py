@@ -9,7 +9,6 @@ Unit tests for OMERO handlers
 from __future__ import division, print_function
 
 import os
-import shlex
 import unittest
 
 from omero.gateway import _ImageWrapper
@@ -49,7 +48,7 @@ class TestHandlers_OMEROConnection(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.config_fn = os.path.join(TEST_DATA_PATH, 'configs', 'sffp.conf')
-        args, configs = parse_args(shlex.split('list -I --config-path {}'.format(cls.config_fn)))
+        args, configs = parse_args('list -I --config-path {}'.format(cls.config_fn), use_shlex=True)
         cls.connection = handlers.OMEROConnection(args, configs)
 
     @classmethod
@@ -129,7 +128,7 @@ class TestPrimitives_Shape(unittest.TestCase):
     def setUpClass(cls):
         # the connectiona args
         cls.config_fn = os.path.join(TEST_DATA_PATH, 'configs', 'sffp.conf')
-        args, configs = parse_args(shlex.split('list -I --config-path {}'.format(cls.config_fn)))
+        args, configs = parse_args('list -I --config-path {}'.format(cls.config_fn), use_shlex=True)
         # the connection
         cls.connection = handlers.OMEROConnection(args, configs)
         # image
@@ -382,7 +381,7 @@ class TestPrimitives_Polygon(unittest.TestCase):
         """Test that swapping X and Y works"""
         self.polygon.setPoints(self.points, swapXY=True)
         swapped_points = map(lambda x: (x[1], x[0]), self.points)
-        self.assertItemsEqual(map(lambda p: (round(p[0], 6), round(p[1], 6)), self.polygon.getPoints()),
+        self.assertCountEqual(map(lambda p: (round(p[0], 6), round(p[1], 6)), self.polygon.getPoints()),
                               map(lambda p: (round(p[0], 6), round(p[1], 6)), swapped_points))
 
     def test_offsetXFrom(self):
@@ -390,7 +389,7 @@ class TestPrimitives_Polygon(unittest.TestCase):
         X_offset = _random_integer()
         self.polygon.setPoints(self.points, offsetXFrom=X_offset)
         offsetX_points = map(lambda p: (X_offset - p[0], p[1]), self.points)
-        self.assertItemsEqual(map(lambda p: (round(p[0], 6), round(p[1], 6)), self.polygon.getPoints()),
+        self.assertCountEqual(map(lambda p: (round(p[0], 6), round(p[1], 6)), self.polygon.getPoints()),
                               map(lambda p: (round(p[0], 6), round(p[1], 6)), offsetX_points))
 
     def test_offsetYFrom(self):
@@ -398,7 +397,7 @@ class TestPrimitives_Polygon(unittest.TestCase):
         Y_offset = _random_integer()
         self.polygon.setPoints(self.points, offsetYFrom=Y_offset)
         offsetY_points = map(lambda p: (p[0], Y_offset - p[1]), self.points)
-        self.assertItemsEqual(map(lambda p: (round(p[0], 6), round(p[1], 6)), self.polygon.getPoints()),
+        self.assertCountEqual(map(lambda p: (round(p[0], 6), round(p[1], 6)), self.polygon.getPoints()),
                               map(lambda p: (round(p[0], 6), round(p[1], 6)), offsetY_points))
 
 
@@ -434,7 +433,7 @@ class TestHandler_OMEROROI_attachROI(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.config_fn = os.path.join(TEST_DATA_PATH, 'configs', 'sffp.conf')
-        args, configs = parse_args(shlex.split('list -I --config-path {}'.format(cls.config_fn)))
+        args, configs = parse_args('list -I --config-path {}'.format(cls.config_fn), use_shlex=True)
         try:
             cls.connection = handlers.OMEROConnection(args, configs)
         except Exception as e:
@@ -450,7 +449,7 @@ class TestHandler_OMEROROI_attachROI(unittest.TestCase):
         Implicitly tests .saveRoi() method
         """
         from ..formats.roi import ROISegmentation
-        args, configs = parse_args(shlex.split('attachroi --config-path {} file.roi'.format(self.config_fn)))
+        args, configs = parse_args('attachroi --config-path {} file.roi'.format(self.config_fn), use_shlex=True)
         roi_fn = os.path.join(TEST_DATA_PATH, 'roi', 'test_emd_1832.roi')
         roi_seg = ROISegmentation(roi_fn)
         image_ids = get_image_ids(roi_seg, args)

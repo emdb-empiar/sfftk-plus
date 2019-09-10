@@ -329,7 +329,7 @@ class VTKMesh(object):
             normals.SetFeatureAngle(240.0)
             normals.Update()
             normalsOutput = normals.GetOutput()
-            #             print vtkmesh_n.GetPointData().GetNormals()
+            #             print(vtkmesh_n.GetPointData().GetNormals())
             vtkmesh.vtk_obj.SetPoints(normals.GetOutput().GetPoints())
             vtkmesh.vtk_obj.SetPolys(normals.GetOutput().GetPolys())
             vtkmesh.vtk_obj.GetPointData().SetNormals(normalsOutput.GetPointData().GetNormals())

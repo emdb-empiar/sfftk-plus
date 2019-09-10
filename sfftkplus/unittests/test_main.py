@@ -18,9 +18,9 @@ import os
 import glob
 import unittest
 from ..core.parser import parse_args
-import __init__ as tests # import _random_integer, _random_float
+from . import TEST_DATA_PATH # import _random_integer, _random_float
 
-sys.path.insert(0, "..")
+# sys.path.insert(0, "..")
 
 
 # redirect sys.stderr/sys.stdout to /dev/null

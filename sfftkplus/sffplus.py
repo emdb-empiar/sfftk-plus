@@ -102,7 +102,7 @@ def handle_list(args, configs):
     from .omero.handlers import OMEROConnection
     with OMEROConnection(args, configs) as connection:
         connection.list()
-    return 0
+    return os.EX_OK
 
 
 def handle_attachroi(args, configs):
@@ -161,7 +161,7 @@ def handle_attachroi(args, configs):
                 if args.verbose:
                     print_date("FAIL", incl_date=False)
                 continue  # non-fatal
-    return 0
+    return os.EX_OK
 
 
 def handle_delroi(args, configs):
@@ -191,7 +191,7 @@ def handle_delroi(args, configs):
             print_date("Deleted {} ROIs".format(roi_count))
         else:
             print_date("Please specify an ROI ID. Search using 'sffp list --rois [--image-id <image_id>]'")
-    return 0
+    return os.EX_OK
 
 
 def handle_createroi(args, configs):
@@ -270,7 +270,7 @@ def handle_view3d(args, configs):
     vtk_seg = sff_seg.as_vtk(args, configs)
     # render as 3D
     vtk_seg.render()
-    return 0
+    return os.EX_OK
 
 
 def handle_export(args, configs):
@@ -294,7 +294,7 @@ def handle_export(args, configs):
     vtk_seg = sff_seg.as_vtk(args, configs)
     out_fn = os.path.basename(".".join(args.sff_file.split('.')[:-1]))
     vtk_seg.export(out_fn, args, configs)
-    return 0
+    return os.EX_OK
 
 
 def handle_configs(args, configs):
@@ -322,7 +322,7 @@ def handle_configs(args, configs):
     elif args.config_subcommand == "clear":
         from sfftk.core.configs import clear_configs
         return clear_configs(args, configs)
-    return 0
+    return os.EX_OK
 
 
 def handle_tests(args, configs):
@@ -334,9 +334,9 @@ def handle_tests(args, configs):
     :type config: ``sfftk.core.configs.Congif``
     :return int status: status
     """
-    if isinstance(args.tool, str):
-        #         from .unittests import test_main
-        #         _module_test_runner(test_main, args)
+    if 'all' in args.tool:
+        # from .unittests import test_main
+        # _module_test_runner(test_main, args)
         _discover_test_runner("sfftkplus.unittests", args)
     else:
         #         if 'main' in args.tool:
@@ -355,18 +355,20 @@ def handle_tests(args, configs):
             from .unittests import test_readers
             _module_test_runner(test_readers, args)
         if 'omero' in args.tool:
-            from .unittests import test_omero
-            _module_test_runner(test_omero, args)
-    return 0
+            from .unittests import _test_omero
+            _module_test_runner(_test_omero, args)
+    return os.EX_OK
 
 
 def main():
     try:
-        from sfftkplus.core.parser import parse_args
+        from .core.parser import parse_args
         args, configs = parse_args(sys.argv[1:])
         # missing args
-        if not args:
-            return 1
+        if args == os.EX_USAGE:
+            return os.EX_USAGE
+        elif args == os.EX_OK:  # e.g. show version has no error but has no handler either
+            return os.EX_OK
         # subcommands
         if args.subcommand == "config":
             return handle_configs(args, configs)
@@ -386,9 +388,9 @@ def main():
             return handle_tests(args, configs)
     except KeyboardInterrupt:
         # handle keyboard interrupt
-        return 0
+        return os.EX_OK
 
-    return 0
+    return os.EX_OK
 
 
 if __name__ == "__main__":

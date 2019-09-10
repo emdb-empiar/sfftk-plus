@@ -66,7 +66,7 @@ class Shape(omero.model.Shape):
 			G = int(255*G)
 			B = int(255*B)
 			if A == 0:
-				print >> sys.stderr, 'Setting alpha to 1% because 0% does not work'
+				print('Setting alpha to 1% because 0% does not work')
 				A = 1/255
 			A = int(255*A)
 # 			else:
@@ -123,7 +123,7 @@ class Shape(omero.model.Shape):
 			G = int(255*G)
 			B = int(255*B)
 			if A == 0:
-				print >> sys.stderr, 'Setting alpha to 1% because 0% does not work'
+				print('Setting alpha to 1% because 0% does not work')
 				A = 1/255
 			A = int(255*A)
 # 		rgba_int = (A << 24) + (R << 16) + (G << 8) + B

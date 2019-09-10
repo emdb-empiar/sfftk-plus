@@ -299,7 +299,7 @@ class OMEROConnection(object):
             else:
                 print_date("Structuring output...")
                 image_view = ImageView(images)
-                print image_view
+                print(image_view)
             return len(images)
         elif self.args.rois:
             print_date("Listing ROIs...")
@@ -309,7 +309,7 @@ class OMEROConnection(object):
             else:
                 print_date("Structuring output...")
                 roi_view = ROIView(rois)
-                print roi_view
+                print(roi_view)
             return len(rois)
 
     @property
@@ -444,7 +444,7 @@ class OMEROConnection(object):
             return 1
         for roi in omero_rois:
             self.saveRoi(roi)
-        return 0
+        return os.EX_OK
 
     # save
     def saveRoi(self, roi):

@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 from __future__ import division
+
 """
 sfftkplus.formats.base
 
@@ -22,9 +23,9 @@ See the License for the specific language governing permissions
 and limitations under the License.
 """
 
-__author__  = "Paul K. Korir, PhD"
-__email__   = "pkorir@ebi.ac.uk, paul.korir@gmail.com"
-__date__    = "2017-04-11"
+__author__ = "Paul K. Korir, PhD"
+__email__ = "pkorir@ebi.ac.uk, paul.korir@gmail.com"
+__date__ = "2017-04-11"
 
 import sfftk.formats.base
 
@@ -51,7 +52,7 @@ class Header(sfftk.formats.base.Header):
 
 class Segmentation(sfftk.formats.base.Segmentation):
     """Extended Segmentation base class"""
+
     def export(self, *args, **kwargs):
         """Overridden export to handle for ROI"""
-        print "Exporting segmentation as a .roi file..."
-        
+        print("Exporting segmentation as a .roi file...")

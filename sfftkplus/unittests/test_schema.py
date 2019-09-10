@@ -7,7 +7,7 @@ import unittest
 
 import h5py
 
-import __init__ as tests
+from . import TEST_DATA_PATH
 from ..core.parser import parse_args
 from ..formats import vtkmesh
 from ..schema import SFFPSegmentation
@@ -21,9 +21,9 @@ __date__    = "2017-08-17"
 class TestSFFPSegmentation(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.sff_file = os.path.join(tests.TEST_DATA_PATH, 'sff', 'test_emd_1832.sff')
-        cls.hff_file = os.path.join(tests.TEST_DATA_PATH, 'sff',  'test_emd_1832.hff')
-        cls.json_file = os.path.join(tests.TEST_DATA_PATH,  'sff', 'test_emd_1832.json')
+        cls.sff_file = os.path.join(TEST_DATA_PATH, 'sff', 'test_emd_1832.sff')
+        cls.hff_file = os.path.join(TEST_DATA_PATH, 'sff',  'test_emd_1832.hff')
+        cls.json_file = os.path.join(TEST_DATA_PATH,  'sff', 'test_emd_1832.json')
         
     def test_read_sff(self):
         """Test that we can read an .sff file"""
@@ -46,7 +46,7 @@ class TestSFFPSegmentation(unittest.TestCase):
         
     def test_as_vtk(self):
         """Test that we can convert to a VTK object"""
-        args, configs = parse_args(shlex.split('createroi file.sff -o file.roi'))
+        args, configs = parse_args('createroi file.sff -o file.roi', use_shlex=True)
         sff_segmentation = SFFPSegmentation(self.sff_file)
         vtk_segmentation = sff_segmentation.as_vtk(args, configs)
         self.assertIsInstance(vtk_segmentation, vtkmesh.VTKSegmentation)

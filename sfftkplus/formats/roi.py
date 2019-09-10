@@ -28,6 +28,7 @@ import sys
 
 import psycopg2
 
+import sfftkplus.schema.roi
 from sfftk.core.print_tools import print_date
 from sfftk.core.utils import rgba_to_hex
 from ..formats.base import Segmentation, Header, Annotation, Segment, Contours
@@ -80,10 +81,10 @@ def get_image_id(cursor, image_name_root, view, ext='map', quick_pick=None):
                 print_date("Quick picking an ID from index {}".format(quick_pick))
                 return rows[quick_pick][0]
             else:
-                return 0
+                return os.EX_OK
     else:
         print_date("No image IDs found for view '{}'".format(view))
-        return 0
+        return os.EX_OK
 
 
 def get_image_size(cursor, image_id):
@@ -99,21 +100,26 @@ def get_image_size(cursor, image_id):
     if rows:
         return rows[0]
     else:
-        return 0
+        return os.EX_OK
 
 
 class ROIContours(Contours):
     def __init__(self, contour_sets):
-        x_contours = list()
-        y_contours = list()
-        z_contours = list()
-        for contour_set in contour_sets:
-            x_contours += contour_set.x_contours
-            y_contours += contour_set.y_contours
-            z_contours += contour_set.z_contours
-        self._x_contours = x_contours
-        self._y_contours = y_contours
-        self._z_contours = z_contours
+        if isinstance(contour_sets, sfftkplus.schema.roi.segmentType):
+            self._x_contours = contour_sets.xContours.contour
+            self._y_contours = contour_sets.yContours.contour
+            self._z_contours = contour_sets.zContours.contour
+        elif isinstance(contour_sets, list):
+            x_contours = list()
+            y_contours = list()
+            z_contours = list()
+            for contour_set in contour_sets:
+                x_contours += contour_set.x_contours
+                y_contours += contour_set.y_contours
+                z_contours += contour_set.z_contours
+            self._x_contours = x_contours
+            self._y_contours = y_contours
+            self._z_contours = z_contours
 
     @classmethod
     def from_vtk(cls, contour_sets):
@@ -153,7 +159,7 @@ class ROIContours(Contours):
         # print(self.x_contours)
         for contour in self.x_contours:  # for each contour
             K = roi.contourType()
-            for point_id, point in contour.iteritems():  # for each point in the contour
+            for point_id, point in contour.items():  # for each point in the contour
                 p = roi.pointType()
                 x, y, z = point
                 p.set_id(point_id)
@@ -166,7 +172,7 @@ class ROIContours(Contours):
         yContours = roi.orientedContourType()
         for contour in self.y_contours:
             K = roi.contourType()
-            for point_id, point in contour.iteritems():
+            for point_id, point in contour.items():
                 p = roi.pointType()
                 x, y, z = point
                 p.set_id(point_id)
@@ -179,7 +185,7 @@ class ROIContours(Contours):
         zContours = roi.orientedContourType()
         for contour in self.z_contours:
             K = roi.contourType()
-            for point_id, point in contour.iteritems():
+            for point_id, point in contour.items():
                 p = roi.pointType()
                 x, y, z = point
                 p.set_id(point_id)
@@ -214,7 +220,7 @@ class ROISegment(Segment):
 
     @id.setter
     def id(self, value):
-        assert id >= 0 and isinstance(value, int)
+        assert value >= 0 and isinstance(value, int)
         self._id = value
 
     @property
@@ -341,11 +347,11 @@ class ROIHeader(Header):
 
     @top_id.setter
     def top_id(self, value):
-        try:
-            assert (value > 0 and (isinstance(value, int) or isinstance(value, long)) or value is None)
-        except AssertionError:
-            print_date("Invalid value: {}".format(value))
-        #             sys.exit(1)
+        if value is not None:
+            try:
+                assert value > 0 and isinstance(value, int)
+            except AssertionError:
+                print_date("Invalid value: {}".format(value))
         self._top_id = value
 
     @property
@@ -354,11 +360,11 @@ class ROIHeader(Header):
 
     @front_id.setter
     def front_id(self, value):
-        try:
-            assert (value > 0 and (isinstance(value, int) or isinstance(value, long)) or value is None)
-        except AssertionError:
-            print_date("Invalid value: {}".format(value))
-        #             sys.exit(1)
+        if value is not None:
+            try:
+                assert value > 0 and isinstance(value, int)
+            except AssertionError:
+                print_date("Invalid value: {}".format(value))
         self._front_id = value
 
     @property
@@ -367,11 +373,11 @@ class ROIHeader(Header):
 
     @right_id.setter
     def right_id(self, value):
-        try:
-            assert (value > 0 and (isinstance(value, int) or isinstance(value, long)) or value is None)
-        except AssertionError:
-            print_date("Invalid value: {}".format(value))
-        #             sys.exit(1)
+        if value is not None:
+            try:
+                assert value > 0 and isinstance(value, int)
+            except AssertionError:
+                print_date("Invalid value: {}".format(value))
         self._right_id = value
 
     def get_image_size(self, args, configs):
@@ -405,14 +411,14 @@ class ROISegmentation(Segmentation):
         if fn:
             self.roi_seg = roireader.get_data(fn, *args, **kwargs)
             self._header = ROIHeader(self.roi_seg)
-            self._segments = map(ROISegment, self.roi_seg.segment)
+            self._segments = list(map(ROISegment, self.roi_seg.segment))
             self._oriented_segments, self._segment_colours = self._compute_oriented_segments()
 
     @classmethod
     def from_vtk(cls, vtk_seg, args, configs):
         obj = cls()
         obj.header = ROIHeader.from_vtk(args, configs)
-        obj.segments = map(ROISegment.from_vtk, vtk_seg.segments)
+        obj.segments = list(map(ROISegment.from_vtk, vtk_seg.segments))
         obj.convert(args, configs)
         return obj
 
@@ -567,13 +573,13 @@ class ROISegmentation(Segmentation):
         front_y_shift = 0.5 * (sizeY - sizeZ)
         right_y_shift = 0.5 * (sizeX - sizeZ)
         # we write a json file for each slice
-        for o, segment in grouped_contours.iteritems():
+        for o, segment in grouped_contours.items():
             shapes = list()
-            for segment_id, segment_contours in segment.iteritems():
+            for segment_id, segment_contours in segment.items():
                 colour = segment_contours['colour']
                 for contour in segment_contours['contours']:
                     point_str = ''
-                    for point_id, point in contour.iteritems():
+                    for point_id, point in contour.items():
                         if point_id == 0:
                             if orientation == 'x':
                                 point_str += 'M {:.2f} {:.2f} '.format(point[1], sizeZ - point[2])
@@ -630,7 +636,7 @@ class ROISegmentation(Segmentation):
                     ofn = fn_root.format(orientation, o)
             # write out the JSON for this orientation and this slice
             if not os.path.exists(os.path.join(path, odir)):
-                os.makedirs(os.path.join(path, odir), 0755)
+                os.makedirs(os.path.join(path, odir), mode=0o0755)
             with open(os.path.join(path, odir, ofn), 'w') as f:
                 json.dump([{"shapes": shapes}], f)
         return
@@ -670,7 +676,7 @@ class ROISegmentation(Segmentation):
         if not os.path.exists(path):
             if args.verbose:
                 print_date("Path not found: {}. It will be created".format(path))
-            os.makedirs(path, 0755)
+            os.makedirs(path, mode=0o0755)
         else:
             if args.verbose:
                 print_date("Path found: {}".format(path))
