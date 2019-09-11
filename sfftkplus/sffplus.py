@@ -335,13 +335,13 @@ def handle_tests(args, configs):
     :return int status: status
     """
     if 'all' in args.tool:
-        # from .unittests import test_main
-        # _module_test_runner(test_main, args)
-        _discover_test_runner("sfftkplus.unittests", args)
+        from .unittests import test_main
+        _module_test_runner(test_main, args)
+        _discover_test_runner("sfftkplus.unittests", args, top_level_dir=os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     else:
-        #         if 'main' in args.tool:
-        #             from .unittests import test_main
-        #             _module_test_runner(test_main, args)
+        if 'main' in args.tool:
+            from .unittests import test_main
+            _module_test_runner(test_main, args)
         if 'core' in args.tool:
             from .unittests import test_core
             _module_test_runner(test_core, args)
