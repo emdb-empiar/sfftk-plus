@@ -84,7 +84,7 @@ def simplify_mask(mask, r_ids, r_p_zip, replace=True):
             # Because parent_ids are non-overlapping (i.e. no region_id has two parent_ids)
             # we can do successive summation instead of assignments.
             full_op = 'simplified_mask += (' + comp + ') * %s' % parent_id
-            exec (full_op)
+            exec(full_op)
     else:
         simplified_mask = mask
 
@@ -206,17 +206,17 @@ class VTKMesh(object):
         new_vertex_id = 0
         new_vertices = dict()
         old_vertex_id_to_new_vertex_id = dict()
-        for vertex_id, vertex in vertices.iteritems():
+        for vertex_id, vertex in vertices.items():
             new_vertices[new_vertex_id] = vertex
             old_vertex_id_to_new_vertex_id[vertex_id] = new_vertex_id
             new_vertex_id += 1
 
         new_polygons = dict()
-        for polygon_id, polygon in polygons.iteritems():
+        for polygon_id, polygon in polygons.items():
             new_polygons[polygon_id] = tuple([old_vertex_id_to_new_vertex_id[p] for p in polygon])
 
         new_normals = dict()
-        for normal_id, normal in normals.iteritems():
+        for normal_id, normal in normals.items():
             old_vertex_id = normal_to_vertex[normal_id]
             new_vertex_id = old_vertex_id_to_new_vertex_id[old_vertex_id]
             new_normals[new_vertex_id] = normal
@@ -224,12 +224,12 @@ class VTKMesh(object):
         vtkmesh = cls(colour, args, *args_, **kwargs_)
         # define the geometry
         points = vtk.vtkPoints()
-        for vertex_id, vertex in new_vertices.iteritems():
+        for vertex_id, vertex in new_vertices.items():
             points.InsertPoint(vertex_id, *vertex)
         vtkmesh.vtk_obj.SetPoints(points)
         # define the topology
         cellArray = vtk.vtkCellArray()
-        for polygon in new_polygons.itervalues():
+        for polygon in new_polygons.values():
             cell_size = len(polygon)
             cellArray.InsertNextCell(cell_size, polygon)
         vtkmesh.vtk_obj.SetPolys(cellArray)
@@ -238,7 +238,7 @@ class VTKMesh(object):
             if len(new_normals) == len(new_vertices):
                 normals = vtk.vtkFloatArray()
                 normals.SetNumberOfComponents(3)
-                for normal_id, normal in new_normals.iteritems():
+                for normal_id, normal in new_normals.items():
                     normals.InsertTuple3(normal_id, *normal)
                 vtkmesh.vtk_obj.GetPointData().SetNormals(normals)
         return vtkmesh
@@ -699,7 +699,6 @@ class VTKHeader(Header):
         self._vtk_args = args
 
 
-
 def decode_lattice(lattice):
     """Decodes a lattice by calling the decode method on a lattice object
 
@@ -771,8 +770,8 @@ class VTKSegmentation(Segmentation):
                 )
             print_date('', incl_date=False)
         else:
-            self._segments = map(lambda s: VTKSegment(s, self._vtk_args, transforms=self._sff_seg.transforms),
-                                 self._sff_seg.segments)
+            self._segments = list(map(lambda s: VTKSegment(s, self._vtk_args, transforms=self._sff_seg.transforms),
+                                      self._sff_seg.segments))
 
     @property
     def vtk_args(self):
@@ -887,7 +886,7 @@ class VTKSegmentation(Segmentation):
         for segment in self.segments:
             segment_data = dict()
             segment_data['id'] = segment.id
-            segment_data['colour'] = map(float, segment.colour)
+            segment_data['colour'] = list(map(float, segment.colour))
             segment_data['meshes'] = list()
             for j, mesh in enumerate(segment.meshes):
                 if args.center:

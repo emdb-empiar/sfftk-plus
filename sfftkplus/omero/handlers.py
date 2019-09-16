@@ -146,7 +146,7 @@ class OMEROROIList(object):
         # 'x' has x-values as key and a value of a dictionary of segment_ids to contours
         # colour as rgba from colour 'key'
         segment_colours = self._roi_seg.segment_colours
-        for orientation_value, oriented_segments in self._roi_seg.oriented_segments[self._orientation].iteritems():
+        for orientation_value, oriented_segments in self._roi_seg.oriented_segments[self._orientation].items():
             omero_roi = OMEROROI(name="{} = {}".format(self._orientation, orientation_value), image=self._image, orientation=self._orientation)
             omero_roi.load_data(orientation_value, oriented_segments, segment_colours)
             omero_rois.append(omero_roi)
