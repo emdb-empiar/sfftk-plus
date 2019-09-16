@@ -37,8 +37,7 @@ class TestFormats(unittest.TestCase):
     def test_from_vtk(self):
         """Test that we can create an ROISegmentation from VTK"""
         args, configs = parse_args(
-            shlex.split(
-                'createroi {} -o file.roi'.format(os.path.join(TEST_DATA_PATH, 'sff', 'test_emd_1832.sff'))))
+                'createroi {} -o file.roi'.format(os.path.join(TEST_DATA_PATH, 'sff', 'test_emd_1832.sff')), use_shlex=True)
         vtk_segmentation = self.sff_segmentation.as_vtk(args, configs)
         #  to get contours we must first slice!
         vtk_segmentation.slice()
