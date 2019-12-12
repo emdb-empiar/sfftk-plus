@@ -753,7 +753,7 @@ class VTKSegmentation(Segmentation):
                     if args.verbose:
                         print_static("Non-binary lattice: segment label #{}".format(int(segment.volume.value)))
                     # new mask
-                    new_simplified_mask = numpy.ndarray(lattice_data.shape, dtype=int)
+                    new_simplified_mask = numpy.ndarray(lattice_data.shape, dtype=numpy.dtype(int))
                     new_simplified_mask[:, :, :] = 0
                     # only the parts for this segment
                     new_simplified_mask = (lattice_data == int(segment.volume.value)) * int(segment.volume.value)

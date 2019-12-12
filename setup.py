@@ -23,4 +23,7 @@ setup(
             'sffp = sfftkplus.sffplus:main',
         ]
     },
+    package_data={
+        'sfftkplus': ['sffp.conf'],
+    }
 )
