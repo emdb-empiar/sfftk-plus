@@ -33,7 +33,7 @@ class TestSFFPSegmentation(unittest.TestCase):
         
     def test_read_hff(self):
         """Test that we can read an .hff file"""
-        with h5py.File(self.hff_file) as h:
+        with h5py.File(self.hff_file, u'r') as h:
             hff_segmentation = SFFPSegmentation.from_hff(h)
         self.assertEqual(hff_segmentation.version, '0.7.0.dev0')
         self.assertEqual(len(hff_segmentation.segments), 6)
@@ -51,4 +51,3 @@ class TestSFFPSegmentation(unittest.TestCase):
         vtk_segmentation = sff_segmentation.as_vtk(args, configs)
         self.assertIsInstance(vtk_segmentation, vtkmesh.VTKSegmentation)
 
-        
