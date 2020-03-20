@@ -7,8 +7,8 @@ import argparse
 import os
 import sys
 
-from sfftk.core.parser import add_args
-from sfftk.core.print_tools import print_date
+from sfftkrw.core.parser import add_args
+from sfftkrw.core.print_tools import print_date
 
 __author__ = 'Paul K. Korir, PhD'
 __email__ = 'pkorir@ebi.ac.uk, paul.korir@gmail.com'
@@ -525,7 +525,7 @@ def parse_args(_args, use_shlex=False):
     :return: parsed arguments
     :rtype: `argparse.Namespace`
     :return: config dict-like object
-    :rtype: ``sfftk.core.configs.Config``
+    :rtype: ``sfftk.core.configs.Configs``
     """
     # use shlex
     if use_shlex:
@@ -711,13 +711,6 @@ def parse_args(_args, use_shlex=False):
                     "Unknown tool: {}; Available tools for test: {}".format(tool, ", ".join(tool_list))
                 )
                 return os.EX_USAGE, configs
-        # if isinstance(args.tool, list):
-        #     for tool in args.tool:
-        #         try:
-        #             assert tool in tool_list
-        #         except AssertionError:
-        #             print("Unknown tool: {}".format(tool), file=sys.stderr)
-        #             print("Available tools for test: {}".format(", ".join(tool_list)), file=sys.stderr)
         if args.verbosity:
             try:
                 assert args.verbosity in range(4)

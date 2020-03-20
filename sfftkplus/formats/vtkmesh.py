@@ -30,9 +30,8 @@ from random import random
 import numpy
 import vtk
 
-from sfftk.core.print_tools import print_date, print_static
+from sfftkrw.core.print_tools import print_date, print_static
 from sfftk.readers.segreader import get_root
-from sfftkplus.formats.base import Segmentation, Header, Segment, Contours, Mesh
 
 __author__ = "Paul K. Korir, PhD"
 __email__ = "pkorir@ebi.ac.uk, paul.korir@gmail.com"
@@ -150,12 +149,12 @@ class VTKMesh(object):
 
     @classmethod
     def from_mesh(cls, sff_mesh, colour, args, *args_, **kwargs_):
-        """Initialiase a VTKMesh object from a ``sfftk.schema.SFFMesh``
+        """Initialiase a VTKMesh object from a ``sfftkrw.SFFMesh``
         
         :param mesh: a mesh with vertices and polygons
-        :type mesh: ``sfftk.schema.SFFMesh``
+        :type mesh: ``sfftkrw.SFFMesh``
         :param colour: the segment colour
-        :type colour: ``sfftk.schema.SFFColour``
+        :type colour: ``sfftkrw.SFFRGBA``
         :param args: parsed arguments
         :type args: ``argparse.Namespace``
         :return vtkmesh: an VTKMesh object
@@ -250,7 +249,7 @@ class VTKMesh(object):
         :param lattice: a mask (3D matrix)
         :type lattice: ``numpy.ndarray``
         :param colour: the segment colour
-        :type colour: ``sfftk.schema.SFFColour``
+        :type colour: ``sfftkrw.SFFRGBA``
         :param args: parsed arguments
         :type args: ``argparse.Namespace``
         :return vtkmesh: an VTKMesh object
@@ -341,16 +340,16 @@ class VTKMesh(object):
 
     @classmethod
     def from_shape(cls, shape, colour, args, transform, resolution=20, *args_, **kwargs_):
-        """Initialiase a VTKMesh object from a sfftk.schema.SFFShape
+        """Initialiase a VTKMesh object from a sfftkrw.SFFShape
         
         :param shapes: an iterable of shapes
-        :type shapes: ``sfftk.schema.SFFShapePrimitiveList
+        :type shapes: ``sfftkrw.SFFShapePrimitiveList
         :param colour: the segment colour
-        :type colour: ``sfftk.schema.SFFColour``
+        :type colour: ``sfftkrw.SFFRGBA``
         :param args: parsed arguments
         :type args: ``argparse.Namespace``
         :param transform: transform bearing this shape's translation from the origin
-        :type transform: ``sfftk.schema.SFFTransform`` subclass (typically ``sfftk.schema.SFFTransformationMatrix``
+        :type transform: ``sfftkrw.SFFTransformationMatrix``
         :param int resolution: mesh resolution
         :return vtkmesh: an VTKMesh object
         :rtype vtkmesh: ``VTKMesh``  
@@ -451,7 +450,7 @@ class VTKMesh(object):
         return self.actor
 
 
-class VTKMeshes(Mesh):
+class VTKMeshes(object):
     def __init__(self, sff_segment, colour, args, *args_, **kwargs_):
         self._sff_segment = sff_segment
         self._vtk_args = args
@@ -496,7 +495,7 @@ class VTKMeshes(Mesh):
         return self._colour
 
 
-class VTKContours(Contours):
+class VTKContours(object):
     def __init__(self, mesh):
         self._mesh = mesh
         self._vtk_args = self._mesh.vtk_args
@@ -640,7 +639,7 @@ class VTKContours(Contours):
         return renderer
 
 
-class VTKSegment(Segment):
+class VTKSegment(object):
     def __init__(self, sff_segment, args, *args_, **kwargs_):
         self._sff_segment = sff_segment
         self._vtk_args = args
@@ -693,7 +692,7 @@ class VTKSegment(Segment):
         return appender
 
 
-class VTKHeader(Header):
+class VTKHeader(object):
     def __init__(self, sff_segment, args):
         self._sff_segment = sff_segment
         self._vtk_args = args
@@ -710,11 +709,11 @@ def decode_lattice(lattice):
     return lattice
 
 
-class VTKSegmentation(Segmentation):
+class VTKSegmentation(object):
     def __init__(self, sff_seg, args, configs):
         self._sff_seg = sff_seg  # the EMDB-SFF segmentation
         if not args.primary_descriptor:
-            args.primary_descriptor = self._sff_seg.primaryDescriptor
+            args.primary_descriptor = self._sff_seg.primary_descriptor
         self._vtk_args = args
         self.configs = configs
         self._header = VTKHeader(self._sff_seg, self._vtk_args)

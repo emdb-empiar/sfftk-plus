@@ -15,7 +15,7 @@ import sys
 import os.path
 
 from sfftk.core.configs import Configs
-from sfftk.core.print_tools import print_date
+from sfftkrw.core.print_tools import print_date
 from sfftkplus import BASE_DIR
 
 

@@ -10,28 +10,16 @@ from __future__ import division
 
 import os
 import random
-import shlex
 import unittest
 
-from . import _random_integer, _random_float
+from sfftkrw.unittests import _random_integer, _random_float
 
 from . import TEST_DATA_PATH
 from ..core.parser import parse_args
 
-
 __author__ = 'Paul K. Korir, PhD'
 __email__ = 'pkorir@ebi.ac.uk, paul.korir@gmail.com'
 __date__ = '2016-06-10'
-
-
-
-# redirect sys.stderr/sys.stdout to /dev/null
-# from: http://stackoverflow.com/questions/8522689/how-to-temporary-hide-stdout-or-stderr-while-running-a-unittest-in-python
-# _stderr = sys.stderr
-# _stdout = sys.stdout
-# null = open(os.devnull, 'wb')
-# sys.stderr = null
-# sys.stdout = null
 
 
 class TestParser_list(unittest.TestCase):
@@ -389,6 +377,7 @@ class TestParser_view3d(unittest.TestCase):
         """Test specifying full screen"""
         args, _ = parse_args('view3d file.sff -F', use_shlex=True)
         self.assertTrue(args.full_screen)
+
     def test_exclude_mesh(self):
         """Test specifying exclude mesh"""
         args, _ = parse_args('view3d file.sff -M', use_shlex=True)

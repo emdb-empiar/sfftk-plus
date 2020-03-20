@@ -13,6 +13,9 @@ from ..formats import vtkmesh
 from ..schema import SFFPSegmentation
 
 
+
+SCHEMA_VERSION = SFFPSegmentation().version
+
 __author__  = "Paul K. Korir, PhD"
 __email__   = "pkorir@ebi.ac.uk, paul.korir@gmail.com"
 __date__    = "2017-08-17"
@@ -33,9 +36,9 @@ class TestSFFPSegmentation(unittest.TestCase):
         
     def test_read_hff(self):
         """Test that we can read an .hff file"""
-        with h5py.File(self.hff_file, u'r') as h:
-            hff_segmentation = SFFPSegmentation.from_hff(h)
-        self.assertEqual(hff_segmentation.version, '0.7.0.dev0')
+        # with h5py.File(self.hff_file, u'r') as h:
+        hff_segmentation = SFFPSegmentation.from_file(self.hff_file)
+        self.assertEqual(hff_segmentation.version, SCHEMA_VERSION)
         self.assertEqual(len(hff_segmentation.segments), 6)
         
     def test_read_json(self):

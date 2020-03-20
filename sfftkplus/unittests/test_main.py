@@ -8,17 +8,12 @@ test_py
 Unit tests for convert subcommand
 """
 
-__author__  = 'Paul K. Korir, PhD'
-__email__   = 'pkorir@ebi.ac.uk'
-__date__    = '2016-06-10'
-
+__author__ = 'Paul K. Korir, PhD'
+__email__ = 'pkorir@ebi.ac.uk'
+__date__ = '2016-06-10'
 
 import sys
 import os
-import glob
-import unittest
-from ..core.parser import parse_args
-from . import TEST_DATA_PATH # import _random_integer, _random_float
 
 # sys.path.insert(0, "..")
 
@@ -36,10 +31,9 @@ password = 'test'
 host = 'localhost'
 port = '4064'
 
-
-#===============================================================================
+# ===============================================================================
 # sfftk-plus tests
-#===============================================================================
+# ===============================================================================
 # class TestMain_handle_list(unittest.TestCase):
 #     def test_list_images(self):
 #         """Test that we can list all images"""
@@ -409,4 +403,3 @@ port = '4064'
 #         pass
 #     def test_notes_trash(self):
 #         pass
-    

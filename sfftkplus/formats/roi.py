@@ -29,9 +29,8 @@ import sys
 import psycopg2
 
 import sfftkplus.schema.roi
-from sfftk.core.print_tools import print_date
-from sfftk.core.utils import rgba_to_hex
-from ..formats.base import Segmentation, Header, Annotation, Segment, Contours
+from sfftkrw.core.print_tools import print_date
+from sfftkrw.core.utils import rgba_to_hex
 from ..readers import roireader
 from ..schema import roi
 
@@ -103,7 +102,7 @@ def get_image_size(cursor, image_id):
         return os.EX_OK
 
 
-class ROIContours(Contours):
+class ROIContours(object):
     def __init__(self, contour_sets):
         if isinstance(contour_sets, sfftkplus.schema.roi.segmentType):
             self._x_contours = contour_sets.xContours.contour
@@ -197,7 +196,7 @@ class ROIContours(Contours):
         return xContours, yContours, zContours
 
 
-class ROISegment(Segment):
+class ROISegment(object):
     def __init__(self, segment=None):
         if segment:
             self._segment = segment
@@ -285,11 +284,11 @@ class ROISegment(Segment):
         return segment
 
 
-class ROIAnnotation(Annotation):
+class ROIAnnotation(object):
     pass
 
 
-class ROIHeader(Header):
+class ROIHeader(object):
     def __init__(self, segmentation=None):
         if segmentation:
             self._segmentation = segmentation
@@ -405,7 +404,7 @@ class ROIHeader(Header):
             return None
 
 
-class ROISegmentation(Segmentation):
+class ROISegmentation(object):
     def __init__(self, fn=None, *args, **kwargs):
         self._fn = fn
         if fn:

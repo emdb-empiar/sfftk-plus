@@ -12,7 +12,7 @@ import os
 import re
 import sys
 
-from sfftk.core.print_tools import print_date, print_static
+from sfftkrw.core.print_tools import print_date, print_static
 from sfftk.sff import _module_test_runner, _discover_test_runner
 
 __author__ = "Paul K. Korir, PhD"
@@ -96,7 +96,7 @@ def handle_list(args, configs):
     :param args: parsed arguments
     :type args: ``argparse.Namespace``
     :param configs: configurations object
-    :type config: ``sfftk.core.configs.Congif``
+    :type config: :py:class:`sfftk.core.configs.Configs`
     :return int status: status
     """
     from .omero.handlers import OMEROConnection
@@ -112,7 +112,7 @@ def handle_attachroi(args, configs):
     :param args: parsed arguments
     :type args: ``argparse.Namespace``
     :param configs: configurations object
-    :type config: ``sfftk.core.configs.Congif``
+    :type config: :py:class:`sfftk.core.configs.Configs`
     :return int status: status
     """
     from .formats.roi import ROISegmentation
@@ -171,7 +171,7 @@ def handle_delroi(args, configs):
     :param args: parsed arguments
     :type args: ``argparse.Namespace``
     :param configs: configurations object
-    :type config: ``sfftk.core.configs.Congif``
+    :type config: :py:class:`sfftk.core.configs.Configs`
     :return int status: status
     """
     from .omero.handlers import OMEROConnection
@@ -201,7 +201,7 @@ def handle_createroi(args, configs):
     :param args: parsed arguments
     :type args: ``argparse.Namespace``
     :param configs: configurations object
-    :type config: ``sfftk.core.configs.Congif``
+    :type config: :py:class:`sfftk.core.configs.Configs`
     :return int exit_status: exit status
     """
     # convert an EMDB-SFF file to an ROI file
@@ -256,7 +256,7 @@ def handle_view3d(args, configs):
     :param args: parsed arguments
     :type args: ``argparse.Namespace``
     :param configs: configurations object
-    :type config: ``sfftk.core.configs.Congif``
+    :type config: :py:class:`sfftk.core.configs.Configs`
     :return int status: status
     """
     from sfftkplus import schema
@@ -280,7 +280,7 @@ def handle_export(args, configs):
     :param args: parsed arguments
     :type args: ``argparse.Namespace``
     :param configs: configurations object
-    :type config: ``sfftk.core.configs.Congif``
+    :type config: :py:class:`sfftk.core.configs.Configs`
     :return int status: status
     """
     if args.verbose:
@@ -304,7 +304,7 @@ def handle_configs(args, configs):
     :param args: parsed arguments
     :type args: ``argparse.Namespace``
     :param configs: configurations object
-    :type config: ``sfftk.core.configs.Congif``
+    :type config: :py:class:`sfftk.core.configs.Configs`
     :return int status: status
     """
     if args.config_subcommand == "list":
@@ -331,7 +331,7 @@ def handle_tests(args, configs):
     :param args: parsed arguments
     :type args: `argparse.Namespace`
     :param configs: configurations object
-    :type config: ``sfftk.core.configs.Congif``
+    :type config: :py:class:`sfftk.core.configs.Configs`
     :return int status: status
     """
     if 'all' in args.tool:

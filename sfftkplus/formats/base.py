@@ -27,32 +27,3 @@ __author__ = "Paul K. Korir, PhD"
 __email__ = "pkorir@ebi.ac.uk, paul.korir@gmail.com"
 __date__ = "2017-04-11"
 
-import sfftk.formats.base
-
-
-class Mesh(sfftk.formats.base.Mesh):
-    pass
-
-
-class Contours(sfftk.formats.base.Contours):
-    pass
-
-
-class Segment(sfftk.formats.base.Segment):
-    pass
-
-
-class Annotation(sfftk.formats.base.Annotation):
-    pass
-
-
-class Header(sfftk.formats.base.Header):
-    pass
-
-
-class Segmentation(sfftk.formats.base.Segmentation):
-    """Extended Segmentation base class"""
-
-    def export(self, *args, **kwargs):
-        """Overridden export to handle for ROI"""
-        print("Exporting segmentation as a .roi file...")

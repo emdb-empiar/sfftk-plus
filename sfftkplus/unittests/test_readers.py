@@ -12,13 +12,11 @@ import os
 import unittest
 
 from . import TEST_DATA_PATH
-
 from ..readers import roireader
 
-
-__author__  = "Paul K. Korir, PhD"
-__email__   = "pkorir@ebi.ac.uk, paul.korir@gmail.com"
-__date__    = "2017-08-14"
+__author__ = "Paul K. Korir, PhD"
+__email__ = "pkorir@ebi.ac.uk, paul.korir@gmail.com"
+__date__ = "2017-08-14"
 
 
 class TestReaders_roireader(unittest.TestCase):
