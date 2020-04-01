@@ -108,7 +108,7 @@ def handle_list(args, configs):
     return os.EX_OK
 
 
-def handle_attachroi(args, configs):
+def handle_roi_attach(args, configs):
     """
     Handle `attachroi` subcommand
     
@@ -167,7 +167,7 @@ def handle_attachroi(args, configs):
     return os.EX_OK
 
 
-def handle_delroi(args, configs):
+def handle_roi_del(args, configs):
     """
     Handle `delroi` subcommand
     
@@ -197,7 +197,7 @@ def handle_delroi(args, configs):
     return os.EX_OK
 
 
-def handle_createroi(args, configs):
+def handle_roi_create(args, configs):
     """
     Handle `createroi` subcommand
     
@@ -252,6 +252,22 @@ def handle_createroi(args, configs):
     return exit_status
 
 
+def handle_roi(args, configs):
+    """
+    Handle `view` subcommand
+
+    :param args: parsed arguments
+    :type args: ``argparse.Namespace``
+    :param configs: configurations object
+    :type config: :py:class:`sfftk.core.configs.Configs`
+    :return int status: status
+    """
+    if args.roi_subcommand == "create":
+        return handle_roi_create(args, configs)
+    elif args.roi_subcommand == "attach":
+        return handle_roi_attach(args, configs)
+    elif args.roi_subcommand == "del":
+        return handle_roi_del(args, configs)
 
 
 def handle_view(args, configs):
@@ -377,14 +393,12 @@ def main():
         # subcommands
         if args.subcommand == "config":
             return handle_configs(args, configs)
-        elif args.subcommand == 'createroi':
-            return handle_createroi(args, configs)
+        elif args.subcommand == 'roi':
+            return handle_roi(args, configs)
         elif args.subcommand == 'attachroi':
             return handle_attachroi(args, configs)
         elif args.subcommand == 'delroi':
             return handle_delroi(args, configs)
-        elif args.subcommand == "view3d":
-            return handle_view3d(args, configs)
         elif args.subcommand == "view":
             return handle_view(args, configs)
         elif args.subcommand == "list":

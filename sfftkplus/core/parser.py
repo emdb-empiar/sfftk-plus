@@ -517,82 +517,84 @@ def parse_args(_args, use_shlex=False):
         elif args.remote:
             configs['CONNECT_WITH'] = 'REMOTE'
 
-    # createroi
-    elif args.subcommand == 'createroi':
-        # make the output file name and check if it exists
-        if args.output is None:
-            ofn = '.'.join(args.sff_file.split('.')[:-1]) + '.{}'.format(args.format)
-            if os.path.exists(ofn) and not args.overwrite:
-                print_date("Output file exists. Use --overwrite to replace it.")
-                return os.EX_USAGE, configs
+    # roi
+    elif args.subcommand == 'roi':
+        # create
+        if args.roi_subcommand == 'create':
+            # make the output file name and check if it exists
+            if args.output is None:
+                ofn = '.'.join(args.sff_file.split('.')[:-1]) + '.{}'.format(args.format)
+                if os.path.exists(ofn) and not args.overwrite:
+                    print_date("Output file exists. Use --overwrite to replace it.")
+                    return os.EX_USAGE, configs
+                else:
+                    print_date("Using output file {}".format(ofn))
+                    args.output = ofn
+            # ensure valid primary_descriptor
+            if args.primary_descriptor:
+                try:
+                    assert args.primary_descriptor in ['three_d_volume', 'mesh_list', 'shape_primitive_list']
+                except AssertionError:
+                    print_date('Invalid value for primary_descriptor: %s' % args.primary_descriptor)
+                    return os.EX_DATAERR, configs
+
+            # ensure valid transparencey
+            if args.transparency:
+                try:
+                    assert 0 <= args.transparency <= 1
+                except AssertionError:
+                    print_date("Invalid value for transparency: {}; should be between 0 and 1 (inclusive)".format(
+                        args.transparency))
+                    return os.EX_DATAERR, configs
+
+            # ensure mask value is an integer (or long)
+            if args.mask_value:
+                try:
+                    assert isinstance(args.mask_value, int)  # or isinstance(args.mask_value, long)
+                except AssertionError:
+                    print_date("Non-integer for mask value")
+                    return os.EX_DATAERR, configs
+
+            # quick pick values are 1-based (not 0-based)
+            # if args.quick_pick is not None:
+            if args.quick_pick <= 0:
+                print_date("Invalid value for --quick-pick. Should be 1-based value of item in list e.g. the value of "
+                           "'a' in ['a', 'b'] is 1 (one).")
+                return os.EX_DATAERR, configs
             else:
-                print_date("Using output file {}".format(ofn))
-                args.output = ofn
-        # ensure valid primary_descriptor
-        if args.primary_descriptor:
-            try:
-                assert args.primary_descriptor in ['three_d_volume', 'mesh_list', 'shape_primitive_list']
-            except AssertionError:
-                print_date('Invalid value for primary_descriptor: %s' % args.primary_descriptor)
-                return os.EX_DATAERR, configs
+                args.quick_pick -= 1  # make it a 0-based index for internal use
 
-        # ensure valid transparencey
-        if args.transparency:
-            try:
-                assert 0 <= args.transparency <= 1
-            except AssertionError:
-                print_date("Invalid value for transparency: {}; should be between 0 and 1 (inclusive)".format(
-                    args.transparency))
-                return os.EX_DATAERR, configs
+            # if we don't have --top-front-right set
+            # then we can choose a default for -I/--image-name-root
+            if not args.top_front_right:
+                if args.image_name_root is None:
+                    image_name_root = os.path.basename('.'.join(args.sff_file.split('.')[:-1]))
+                    args.image_name_root = image_name_root
+                    print_date("Setting image name root to {}".format(image_name_root))
 
-        # ensure mask value is an integer (or long)
-        if args.mask_value:
-            try:
-                assert isinstance(args.mask_value, int)  # or isinstance(args.mask_value, long)
-            except AssertionError:
-                print_date("Non-integer for mask value")
-                return os.EX_DATAERR, configs
+        # attach
+        elif args.subcommand == 'attach':
+            # enforce local if specified
+            if args.local:
+                configs['CONNECT_WITH'] = 'LOCAL'
+            elif args.remote:
+                configs['CONNECT_WITH'] = 'REMOTE'
 
-        # quick pick values are 1-based (not 0-based)
-        # if args.quick_pick is not None:
-        if args.quick_pick <= 0:
-            print_date("Invalid value for --quick-pick. Should be 1-based value of item in list e.g. the value of "
-                       "'a' in ['a', 'b'] is 1 (one).")
-            return os.EX_DATAERR, configs
-        else:
-            args.quick_pick -= 1  # make it a 0-based index for internal use
+        # del
+        elif args.subcommand == 'del':
+            # enforce local if specified
+            if args.local:
+                configs['CONNECT_WITH'] = 'LOCAL'
+            elif args.remote:
+                configs['CONNECT_WITH'] = 'REMOTE'
 
-        # if we don't have --top-front-right set
-        # then we can choose a default for -I/--image-name-root
-        if not args.top_front_right:
-            if args.image_name_root is None:
-                image_name_root = os.path.basename('.'.join(args.sff_file.split('.')[:-1]))
-                args.image_name_root = image_name_root
-                print_date("Setting image name root to {}".format(image_name_root))
+            # ensure that we have either an image or ROI ID
+            if not args.image_id and not args.roi_id:
+                raise ValueError('Missing either image (-i) or ROI (-r) ID')
 
-    # attachroi
-    elif args.subcommand == 'attachroi':
-        # enforce local if specified
-        if args.local:
-            configs['CONNECT_WITH'] = 'LOCAL'
-        elif args.remote:
-            configs['CONNECT_WITH'] = 'REMOTE'
-
-    # delroi
-    elif args.subcommand == 'delroi':
-        # enforce local if specified
-        if args.local:
-            configs['CONNECT_WITH'] = 'LOCAL'
-        elif args.remote:
-            configs['CONNECT_WITH'] = 'REMOTE'
-
-        # ensure that we have either an image or ROI ID
-        if not args.image_id and not args.roi_id:
-            raise ValueError('Missing either image (-i) or ROI (-r) ID')
-
-        # ensure that both image and ROI ID are not set simultaneously
-        if args.image_id and args.roi_id:
-            raise ValueError('Only set one of image (-i) or ROI (-r) ID; not both')
+            # ensure that both image and ROI ID are not set simultaneously
+            if args.image_id and args.roi_id:
+                raise ValueError('Only set one of image (-i) or ROI (-r) ID; not both')
 
     # tests
     elif args.subcommand == 'tests':
