@@ -671,7 +671,7 @@ class ROISegmentation(object):
         """
         import re
         # create the path if it doesn't exist
-        path = os.path.dirname(fn)
+        path = os.path.join(os.path.dirname(os.path.abspath(fn)), 'roi')
         if not os.path.exists(path):
             if args.verbose:
                 print_date("Path not found: {}. It will be created".format(path))

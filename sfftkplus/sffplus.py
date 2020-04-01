@@ -13,7 +13,10 @@ import re
 import sys
 
 from sfftkrw.core.print_tools import print_date, print_static
-from sfftk.sff import _module_test_runner, _discover_test_runner
+from sfftkrw.sffrw import _module_test_runner, _discover_test_runner
+from sfftk.sff import handle_view
+
+import sfftkrw.schema.adapter_v0_8_0_dev1 as schema
 
 __author__ = "Paul K. Korir, PhD"
 __email__ = "pkorir@ebi.ac.uk, paul.korir@gmail.com"
@@ -205,11 +208,11 @@ def handle_createroi(args, configs):
     :return int exit_status: exit status
     """
     # convert an EMDB-SFF file to an ROI file
-    if re.match(r'.*\.(sff|hff)$', args.sff_file, re.IGNORECASE):
+    if re.match(r'.*\.(sff|hff|json)$', args.sff_file, re.IGNORECASE):
         from .schema import SFFPSegmentation
         if args.verbose:
             print_date("Reading in EMDB-SFF file {}".format(args.sff_file))
-        sff_seg = SFFPSegmentation(args.sff_file)
+        sff_seg = SFFPSegmentation.from_file(args.sff_file)
         # convert segments to VTK meshes
         if args.verbose:
             print_date("Converting EMDB-SFF segments to VTK meshes")
@@ -249,29 +252,31 @@ def handle_createroi(args, configs):
     return exit_status
 
 
-def handle_view3d(args, configs):
+
+
+def handle_view(args, configs):
     """
-    Handle `view3d` subcommand
-    
+    Handle `view` subcommand
+
     :param args: parsed arguments
     :type args: ``argparse.Namespace``
     :param configs: configurations object
     :type config: :py:class:`sfftk.core.configs.Configs`
     :return int status: status
     """
-    from sfftkplus import schema
-    # convert an EMDB-SFF file to an ROI file
-    if re.match(r'.*\.(sff|hff)$', args.sff_file, re.IGNORECASE):
-        sff_seg = schema.SFFPSegmentation(args.sff_file)
+    if args.visualise:
+        # visualise
+        if re.match(r'.*\.(sff|hff|json)$', args.from_file, re.IGNORECASE):
+            seg = schema.SFFSegmentation.from_file(args.from_file)
+            from .formats.vtkmesh import VTKSegmentation
+            vtk_seg = VTKSegmentation(seg, args, configs)
+            vtk_seg.render()
+            return os.EX_OK
+        else:
+            print_date("Unsupported file type: {}".format(args.from_file))
+            return os.EX_DATAERR
     else:
-        print_date("Unsupported file type: {}".format(args.sff_file))
-        return 1
-    # convert segments to VTK meshes
-    vtk_seg = sff_seg.as_vtk(args, configs)
-    # render as 3D
-    vtk_seg.render()
-    return os.EX_OK
-
+        return handle_view(args, configs)
 
 def handle_export(args, configs):
     """
@@ -286,8 +291,8 @@ def handle_export(args, configs):
     if args.verbose:
         print_date("Converting segments in {} to VTP files".format(args.sff_file))
     from . import schema
-    if re.match(r'.*\.(sff|hff)$', args.sff_file, re.IGNORECASE):
-        sff_seg = schema.SFFPSegmentation(args.sff_file)
+    if re.match(r'.*\.(sff|hff|json)$', args.sff_file, re.IGNORECASE):
+        sff_seg = schema.SFFPSegmentation.from_file(args.sff_file)
     else:
         print_date("Unsupported file type: {}".format(args.sff_file))
         return 1
@@ -380,6 +385,8 @@ def main():
             return handle_delroi(args, configs)
         elif args.subcommand == "view3d":
             return handle_view3d(args, configs)
+        elif args.subcommand == "view":
+            return handle_view(args, configs)
         elif args.subcommand == "list":
             return handle_list(args, configs)
         elif args.subcommand == "export":

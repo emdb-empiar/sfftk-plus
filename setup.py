@@ -17,13 +17,13 @@ setup(
     long_description=long_description,
     license="Apache License",
     keywords="EMDB-SFF, SFF, segmentation",
-    install_requires=['sfftk-rw', 'vtk', 'psycopg2', ],
+    install_requires=['sfftk', 'vtk', 'psycopg2', ],
     entry_points={
         'console_scripts': [
-            'sffp = sfftkplus.sffplus:main',
+            'sff = sfftkplus.sffplus:main',
         ]
     },
     package_data={
-        'sfftkplus': ['sffp.conf'],
+        'sfftkplus': ['sffp.conf', 'schema/roi.xsd', ],
     }
 )

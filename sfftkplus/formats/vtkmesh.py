@@ -23,15 +23,15 @@ and limitations under the License.
 
 from __future__ import division
 
+import json
 import math
 import os
 from random import random
 
 import numpy
 import vtk
-
-from sfftkrw.core.print_tools import print_date, print_static
 from sfftk.readers.segreader import get_root
+from sfftkrw.core.print_tools import print_date, print_static
 
 __author__ = "Paul K. Korir, PhD"
 __email__ = "pkorir@ebi.ac.uk, paul.korir@gmail.com"
@@ -150,7 +150,7 @@ class VTKMesh(object):
     @classmethod
     def from_mesh(cls, sff_mesh, colour, args, *args_, **kwargs_):
         """Initialiase a VTKMesh object from a ``sfftkrw.SFFMesh``
-        
+
         :param mesh: a mesh with vertices and polygons
         :type mesh: ``sfftkrw.SFFMesh``
         :param colour: the segment colour
@@ -158,88 +158,31 @@ class VTKMesh(object):
         :param args: parsed arguments
         :type args: ``argparse.Namespace``
         :return vtkmesh: an VTKMesh object
-        :rtype vtkmesh: ``VTKMesh``  
+        :rtype vtkmesh: ``VTKMesh``
         """
-        # for each vertex in this mesh
-        transform = kwargs_['transforms'][0].data_array
-        # print('transforms = ', transform)
-        # print('transformed (1, 1, 1) = ', cls.transform_point([1, 1, 1], transform))
-        vertices = dict()
-        vertex_ids = list()
-        normals = dict()
-        normal_ids = list()
-        for v in sff_mesh.vertices:
-            if v.designation == 'surface':
-                # vertices[v.vID] = cls.transform_point(v.point, transform) # apply the first transform
-                vertices[v.vID] = v.point
-                vertex_ids.append(v.vID)
-            elif v.designation == 'normal':
-                normals[v.vID] = v.point
-                normal_ids.append(v.vID)
-
-        if len(normal_ids) == len(vertex_ids):
-            normal_to_vertex = dict(zip(normal_ids, vertex_ids))
-        else:
-            normal_to_vertex = dict()
-        # for each polygon in this mesh
-        polygons = dict()
-        for P in sff_mesh.polygons:
-            if len(normal_ids) > 0:
-                if P.vertex_ids[0] in normal_ids:  # if the first vertex in the polygon is a normal
-                    polygons[P.PID] = tuple(P.vertex_ids[1::2])
-                elif P.vertex_ids[0] in vertex_ids:  # if the first vertex in the polygon is a vertex
-                    polygons[P.PID] = tuple(P.vertex_ids[::2])
-            else:
-                polygons[P.PID] = tuple(P.vertex_ids)
-        """
-        The problem with the above process is that in each mesh we end up with indices offset
-        by 2 i.e. e.g. vertices will be 0, 2, 4, ... and normal 1, 3, 5, ...
-        because they are defined that way in some files. We need to fix that
-         
-        We need 
-        vertices 0, 1, 2,...
-        polygons refer to these vertices
-        normals 0, 1, 2, refer to these vertices
-        then we do away with normal_to_vertex
-        """
-        new_vertex_id = 0
-        new_vertices = dict()
-        old_vertex_id_to_new_vertex_id = dict()
-        for vertex_id, vertex in vertices.items():
-            new_vertices[new_vertex_id] = vertex
-            old_vertex_id_to_new_vertex_id[vertex_id] = new_vertex_id
-            new_vertex_id += 1
-
-        new_polygons = dict()
-        for polygon_id, polygon in polygons.items():
-            new_polygons[polygon_id] = tuple([old_vertex_id_to_new_vertex_id[p] for p in polygon])
-
-        new_normals = dict()
-        for normal_id, normal in normals.items():
-            old_vertex_id = normal_to_vertex[normal_id]
-            new_vertex_id = old_vertex_id_to_new_vertex_id[old_vertex_id]
-            new_normals[new_vertex_id] = normal
-        # the VTKMesh
+        vertices = sff_mesh.vertices.data_array
+        if sff_mesh.normals is not None:
+            normals = sff_mesh.normals.data_array
+        triangles = sff_mesh.triangles.data_array
         vtkmesh = cls(colour, args, *args_, **kwargs_)
         # define the geometry
         points = vtk.vtkPoints()
-        for vertex_id, vertex in new_vertices.items():
+        for vertex_id, vertex in enumerate(vertices):
             points.InsertPoint(vertex_id, *vertex)
         vtkmesh.vtk_obj.SetPoints(points)
         # define the topology
         cellArray = vtk.vtkCellArray()
-        for polygon in new_polygons.values():
-            cell_size = len(polygon)
-            cellArray.InsertNextCell(cell_size, polygon)
+        for triangle in triangles:
+            cell_size = len(triangle)
+            cellArray.InsertNextCell(cell_size, triangle)
         vtkmesh.vtk_obj.SetPolys(cellArray)
-        #  define normals (if they exist)
-        if not args.normals_off:
-            if len(new_normals) == len(new_vertices):
-                normals = vtk.vtkFloatArray()
-                normals.SetNumberOfComponents(3)
-                for normal_id, normal in new_normals.items():
-                    normals.InsertTuple3(normal_id, *normal)
-                vtkmesh.vtk_obj.GetPointData().SetNormals(normals)
+        if not args.normals_off and sff_mesh.normals is not None:
+            if len(normals) == len(vertices):
+                _normals = vtk.vtkFloatArray()
+                _normals.SetNumberOfComponents(3)
+                for normal_id, normal in enumerate(normals):
+                    _normals.InsertTuple3(normal_id, *normal)
+                vtkmesh.vtk_obj.GetPointData().SetNormals(_normals)
         return vtkmesh
 
     @classmethod
@@ -457,22 +400,22 @@ class VTKMeshes(object):
         self._vtk_meshes = list()
         self._colour = colour
         # transforms
-        if 'transforms' in kwargs_:
+        if 'transform_list' in kwargs_:
             self._transforms = kwargs_['transforms']
         if 'lattice' in kwargs_:
             self._lattice = kwargs_['lattice']
-        if self.primary_descriptor == "meshList":
-            for mesh in self._sff_segment.meshes:
+        if self.primary_descriptor == "mesh_list":
+            for mesh in self._sff_segment.mesh_list:
                 self._vtk_meshes.append(
                     VTKMesh.from_mesh(mesh, self.colour, self._vtk_args, *args_, **kwargs_)
                 )
-        elif self.primary_descriptor == "shapePrimitiveList":
+        elif self.primary_descriptor == "shape_primitive_list":
             for shape in self._sff_segment.shapes:
                 transform = self._transforms[shape.transformId]
                 self._vtk_meshes.append(
                     VTKMesh.from_shape(shape, self.colour, self._vtk_args, transform)
                 )
-        elif self.primary_descriptor == "threeDVolume":
+        elif self.primary_descriptor == "three_d_volume":
             self._vtk_meshes.append(
                 VTKMesh.from_volume(self._lattice, self.colour, self._vtk_args)
             )
@@ -720,42 +663,37 @@ class VTKSegmentation(object):
         self._segments = list()
         self._sliced_segments = list()
         # 3D volume segmentations
-        if self._vtk_args.primary_descriptor == "threeDVolume":
+        if self._vtk_args.primary_descriptor == "three_d_volume":
             self._lattices = dict()
-            # decode lattices in parallel
-            # if args.verbose:
-            #     print_date("Decoding lattices in parallel...")
-            # lattices = parallelise(
-            #     self._sff_seg.lattices,
-            #     target=decode_lattice,
-            #     number_of_processes=10,
-            # )
             # reconstitute into a dict
             if args.verbose:
                 print_static("Decoding lattices...")
             for lattice in self._sff_seg.lattices:
                 if args.verbose:
                     print_static("Decoding lattice {}...".format(lattice.id))
-                lattice.decode()
+                # lattice.decode()
                 print_date('', incl_date=False)
-                self._lattices[lattice.id] = lattice
+                self._lattices[lattice.id] = lattice.data_array
             # now we have the lattices decoded into 3D volumes,
             # we need to compute the surfaces for each
             for segment in self._sff_seg.segments:
-                lattice = self._lattices[segment.volume.latticeId]
-                if lattice.is_binary:
+                lattice_data = self._lattices[segment.three_d_volume.lattice_id]
+                voxel_values = set(lattice_data.flatten().tolist()).difference({0})
+                if len(voxel_values) == 1:  # it's a binary mask
                     if args.verbose:
                         print_date("Binary lattice")
-                    new_simplified_mask = lattice.data
+                    new_simplified_mask = lattice_data
                 else:
-                    lattice_data = lattice.data
+                    # lattice_data = lattice.data
                     if args.verbose:
-                        print_static("Non-binary lattice: segment label #{}".format(int(segment.volume.value)))
+                        print_static("Non-binary lattice: segment label #{}".format(int(segment.three_d_volume.value)))
                     # new mask
                     new_simplified_mask = numpy.ndarray(lattice_data.shape, dtype=numpy.dtype(int))
+                    # new_simplified_mask = lattice
                     new_simplified_mask[:, :, :] = 0
                     # only the parts for this segment
-                    new_simplified_mask = (lattice_data == int(segment.volume.value)) * int(segment.volume.value)
+                    new_simplified_mask = (lattice_data == int(segment.three_d_volume.value)) * int(
+                        segment.three_d_volume.value)
                     if new_simplified_mask.sum() == 0:
                         print_date('', incl_date=False)
                         print_date('No data found for segment {}'.format(segment.id))
@@ -763,14 +701,14 @@ class VTKSegmentation(object):
                 self._segments.append(
                     VTKSegment(
                         segment, self._vtk_args,
-                        transforms=self._sff_seg.transforms,
+                        transforms=self._sff_seg.transform_list,
                         lattice=new_simplified_mask
                     )
                 )
             print_date('', incl_date=False)
         else:
-            self._segments = list(map(lambda s: VTKSegment(s, self._vtk_args, transforms=self._sff_seg.transforms),
-                                      self._sff_seg.segments))
+            self._segments = list(map(lambda s: VTKSegment(s, self._vtk_args, transforms=self._sff_seg.transform_list),
+                                      self._sff_seg.segment_list))
 
     @property
     def vtk_args(self):
@@ -803,17 +741,22 @@ class VTKSegmentation(object):
                 _bounds['ymaxs'].append(_ymin)
                 _bounds['zmins'].append(_zmin)
                 _bounds['zmaxs'].append(_zmin)
-        true_bounds = (
-            min(_bounds['xmins']), max(_bounds['xmaxs']),
-            min(_bounds['ymins']), max(_bounds['ymaxs']),
-            min(_bounds['zmins']), max(_bounds['zmaxs'])
-        )
+        try:
+            true_bounds = (
+                min(_bounds['xmins']), max(_bounds['xmaxs']),
+                min(_bounds['ymins']), max(_bounds['ymaxs']),
+                min(_bounds['zmins']), max(_bounds['zmaxs'])
+            )
+        except ValueError:
+            true_bounds = None
         return true_bounds
 
     @property
     def center_point(self):
-        xmin, xmax, ymin, ymax, zmin, zmax = self.bounds
-        center = xmin + (xmax - xmin) / 2, ymin + (ymax - ymin) / 2, zmin + (zmax - zmin) / 2
+        center = 0.0, 0.0, 0.0
+        if self.bounds:
+            xmin, xmax, ymin, ymax, zmin, zmax = self.bounds
+            center = xmin + (xmax - xmin) / 2, ymin + (ymax - ymin) / 2, zmin + (zmax - zmin) / 2
         return center
 
     def slice(self):
@@ -821,7 +764,7 @@ class VTKSegmentation(object):
             segment.slice()
 
     def as_roi(self, args, configs):
-        from ..formats.roi import ROISegmentation
+        from .roi import ROISegmentation
         return ROISegmentation.from_vtk(self, args, configs)
 
     def render(self):
@@ -914,7 +857,6 @@ class VTKSegmentation(object):
                 segment_data['meshes'].append(os.path.basename(out_fn))
             json_data['segments'].append(segment_data)
         json_data['segment_count'] = len(self.segments)
-        import json
         json_f = os.path.join(args.output_path, '{}_vtp_segments.json'.format(fn))
         with open(json_f, 'w') as f:
             json.dump(json_data, f, indent=4, sort_keys=True)

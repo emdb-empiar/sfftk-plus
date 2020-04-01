@@ -3,10 +3,10 @@
 """Parses command-line options"""
 from __future__ import print_function
 
-import argparse
 import os
-import sys
 
+from sfftk.core.parser import Parser, subparsers, convert_parser, prep_parser, config_parser, notes_parser, view_parser, tests_parser, tool_list
+from sfftkrw.core import _dict_iter_keys
 from sfftkrw.core.parser import add_args
 from sfftkrw.core.print_tools import print_date
 
@@ -16,20 +16,7 @@ __date__ = '2016-06-10'
 
 verbosity_range = range(4)
 
-Parser = argparse.ArgumentParser(prog='sffp', description="The EMDB-SFF Toolkit (sfftk)")
-Parser.add_argument(
-    '-V', '--version',
-    action='store_true',
-    default=False,
-    help='show the sfftk-plus version string and the supported EMDB-SFF version string',
-)
-
-subparsers = Parser.add_subparsers(
-    title='Tools',
-    dest='subcommand',
-    description='The EMDB-SFF Extended Toolkit (sfftk-plus) provides the following tools:',
-    metavar="EMDB-SFF tools"
-)
+Parser.description = u"The Extended EMDB-SFF Toolkit (sfftk-plus)"
 
 # ===============================================================================
 # common arguments
@@ -57,13 +44,13 @@ dataset = {
         'help': "dataset name [default: None]"
     }
 }
-details_param = {
-    'args': ['-d', '--details'],
-    'kwargs': {
-        'default': "",
-        'help': "populates <details>...</details> in the XML file [default: '']"
-    }
-}
+# details_param = {
+#     'args': ['-d', '--details'],
+#     'kwargs': {
+#         'default': "",
+#         'help': "populates <details>...</details> in the XML file [default: '']"
+#     }
+# }
 FORMAT_LIST = [
     ('roi', 'ROI'),
     ('json', 'JSON'),
@@ -112,7 +99,7 @@ mask_value = {
     'kwargs': {
         'default': 1,
         'type': int,
-        'help': "for masks (threeDVolume segments): an integer value used mark masked regions [default: 1]"
+        'help': "for masks (three_d_volume segments): an integer value used mark masked regions [default: 1]"
     }
 }
 normals_off = {
@@ -170,7 +157,7 @@ primary_descriptor = {
     'args': ['-R', '--primary-descriptor'],
     'kwargs': {
         'default': None,
-        'help': "populates the <primaryDescriptor>...</primaryDescriptor> to this value [valid values:  threeDVolume, contourList, meshList, shapePrimitiveList]"
+        'help': "populates the <primary_descriptor>...</primary_descriptor> to this value [valid values:  three_d_volume, mesh_list, shape_primitive_list]"
     }
 }
 remote = {
@@ -223,106 +210,6 @@ overwrite = {
 }
 
 # ===============================================================================
-# updateschema subparser
-# ===============================================================================
-# updateschema_parser = subparsers.add_parser('updateschema', description="Update the schema API (schema/emdb_sff.py and schema/roi.py)", help="update schemas (emdb_sff.py or roi.py) using generateDS.py")
-# updateschema_parser.add_argument('-s', '--schema-file', help="path to schema (.xsd) file")
-
-# =============================================================================
-# config subparser
-# =============================================================================
-config_parser = subparsers.add_parser(
-    'config',
-    description="Configuration utility",
-    help="manage sfftkplus configs"
-)
-
-config_subparsers = config_parser.add_subparsers(
-    title="sfftkplus configurations",
-    dest="config_subcommand",
-    description="Persistent configurations utility",
-    metavar="Commands:"
-)
-
-# =============================================================================
-# config: get
-# =============================================================================
-get_config_parser = config_subparsers.add_parser(
-    'get',
-    description='Get the value of a single configuration parameter',
-    help='get single sfftk-plus config'
-)
-get_config_parser.add_argument(
-    'name',
-    nargs="?",
-    default=None,
-    help="the name of the argument to retrieve",
-)
-add_args(get_config_parser, config_path)
-add_args(get_config_parser, shipped_configs)
-get_config_parser.add_argument(
-    '-a', '--all',
-    action='store_true',
-    default=False,
-    help='get all configs'
-)
-add_args(get_config_parser, verbose)
-
-# =============================================================================
-# config: set
-# =============================================================================
-set_config_parser = config_subparsers.add_parser(
-    'set',
-    description='Set the value of a single configuration parameter',
-    help='set single sfftk-plus config'
-)
-set_config_parser.add_argument(
-    'name', help="the name of the argument to set",
-)
-set_config_parser.add_argument(
-    'value', help="the value of the argument to set",
-)
-add_args(set_config_parser, config_path)
-add_args(set_config_parser, shipped_configs)
-add_args(set_config_parser, verbose)
-set_config_parser.add_argument(
-    '-f', '--force',
-    action='store_true',
-    default=False,
-    help='force overwriting of an existing config; do not ask to confirm [default: False]'
-)
-
-# =============================================================================
-# config: del
-# =============================================================================
-del_config_parser = config_subparsers.add_parser(
-    'del',
-    description='Delete the named configuration parameter',
-    help='delete single sfftk-plus config'
-)
-del_config_parser.add_argument(
-    'name',
-    nargs='?',
-    default=None,
-    help="the name of the argument to be deleted"
-)
-add_args(del_config_parser, config_path)
-add_args(del_config_parser, shipped_configs)
-del_config_parser.add_argument(
-    '-a', '--all',
-    action='store_true',
-    default=False,
-    help='delete all configs (asks the user to confirm before deleting) [default: False]'
-)
-del_config_parser.add_argument(
-    '-f', '--force',
-    action='store_true',
-    default=False,
-    help='force deletion; do not ask to confirm deletion [default: False]'
-)
-add_args(del_config_parser, verbose)
-
-# ===============================================================================
 # list subparser
 # ===============================================================================
 list_parser = subparsers.add_parser(
@@ -356,8 +243,19 @@ add_args(local_or_remote, remote)
 # ===============================================================================
 # createroi subparser
 # ===============================================================================
-createroi_parser = subparsers.add_parser('createroi', description="Create ROIs and write to file",
-                                         help="create ROIs and write to file")
+roi_parser = subparsers.add_parser('roi',
+                                   description='Work with 2D regions-of-interest (ROIs). You can create, attach and delete ROIs to an OMERO server',
+                                   help='work with 2D ROIs')
+
+roi_subparser = roi_parser.add_subparsers(
+    title='Region-of-Interest (ROI) tools',
+    dest='roi_subcommand',
+    description='Convert 3D segmentations to 2D ROIs associated with each slice of the corresponding image data',
+    metavar='ROI tools',
+)
+
+createroi_parser = roi_subparser.add_parser('create', description="Create ROIs and write to file",
+                                            help="create ROIs and write to file")
 add_args(createroi_parser, config_path)
 add_args(createroi_parser, shipped_configs)
 createroi_parser.add_argument(*output['args'], **output['kwargs'])
@@ -402,9 +300,9 @@ createroi_parser.add_argument(
 # ===============================================================================
 # attachroi subparser
 # ===============================================================================
-attachroi_parser = subparsers.add_parser('attachroi',
-                                         description="Associate the ROIs from the file with the image (by ID) in the OMERO-server",
-                                         help="attach ROIs to image")
+attachroi_parser = roi_subparser.add_parser('attach',
+                                            description="Associate the ROIs from the file with the image (by ID) in the OMERO-server",
+                                            help="attach ROIs to image")
 attachroi_parser.add_argument('roi_file', help="file with ROIs")
 attachroi_parser.add_argument('-x', '--x-image-id', type=int, help="id of front image in OMERO-server")
 attachroi_parser.add_argument('-y', '--y-image-id', type=int, help="id of rightside image in OMERO-server")
@@ -423,9 +321,9 @@ add_args(local_or_remote, remote)
 # ===============================================================================
 # delroi subparser
 # ===============================================================================
-delroi_parser = subparsers.add_parser('delroi',
-                                      description="Delete all ROIs associated with the image (by ID) in the OMERO-server",
-                                      help="delete ROIs associated with image")
+delroi_parser = roi_subparser.add_parser('del',
+                                         description="Delete all ROIs associated with the image (by ID) in the OMERO-server",
+                                         help="delete ROIs associated with image")
 delroi_type_group = delroi_parser.add_mutually_exclusive_group()
 delroi_type_group.add_argument('-r', '--roi-id', type=int, help="id of ROI in OMERO-server")
 delroi_type_group.add_argument(*image_id['args'], **image_id['kwargs'])
@@ -443,43 +341,40 @@ add_args(local_or_remote, remote)
 # ===============================================================================
 # view3d subparser
 # ===============================================================================
-view3d_parser = subparsers.add_parser('view3d', description="View 3D rendering of segmentations",
-                                      help="render 3D model")
-view3d_parser.add_argument('sff_file', help="any SFF file")
-view3d_parser.add_argument('-A', '--all-contours', action='store_true', default=False,
-                           help="show all contours [default: False]")
-view3d_parser.add_argument('-C', '--keep-contours', action='store_true', default=False,
-                           help="do not convert contours to meshes; only applies for contourList [default: False]")
-view3d_parser.add_argument('-F', '--full-screen', action='store_true', default=False,
-                           help="show models in full-screen mode [default: False]")
-view3d_parser.add_argument('-M', '--exclude-mesh', action='store_true', default=False,
-                           help="do not display the main mesh [default: False]")
-view3d_parser.add_argument('-X', '--x-contours', action='store_true', default=False,
-                           help="show x contours [default: False]")
-view3d_parser.add_argument('-Y', '--y-contours', action='store_true', default=False,
-                           help="show y contours [default: False]")
-view3d_parser.add_argument('-Z', '--z-contours', action='store_true', default=False,
-                           help="show z contours [default: False]")
-view3d_parser.add_argument('-a', '--no-orientation-axes', action='store_true', default=False,
-                           help="do not display orientation axes (bottom right of viewport) [default: True]")
-view3d_parser.add_argument('-B', '--background-colour', nargs=3, default=[0.1, 0.2, 0.4], type=float,
-                           help="set the colour to be used for the background [default: 0.1 0.2, 0.4]")
-view3d_parser.add_argument('-c', '--cube-axes', type=int,
-                           help="how to display the cube axes; 0 - outer edges; 1 - closest triad; 2 - furthest triad; 3 - static triad; 4 - static edges; [default: None]")
-view3d_parser.add_argument('-e', '--view-edges', action='store_true', default=False, help="show edges [default: False]")
-view3d_parser.add_argument('-f', '--fill-holes', action='store_true', default=False,
-                           help="attempt to fill holes in mesh [default: False]")
-# view3d_parser.add_argument('-i', '--smooth-iterations', default=50, type=int, help="the number of smoothing iterations [default: 50]")
-view3d_parser.add_argument(*normals_off['args'], **normals_off['kwargs'])
-# view3d_parser.add_argument('-s', '--smooth', action='store_true', default=False, help="attempt to smoothen mesh [default: False]")
-view3d_parser.add_argument('-w', '--wireframe', action='store_true', default=False,
-                           help="use wireframe representation (but retains contours as solids) [default: False]")
-view3d_parser.add_argument(*primary_descriptor['args'], **primary_descriptor['kwargs'])
-view3d_parser.add_argument(*transparency['args'], **transparency['kwargs'])
-view3d_parser.add_argument(*verbose['args'], **verbose['kwargs'])
-view3d_parser.add_argument(*mask_value['args'], **mask_value['kwargs'])
-add_args(view3d_parser, config_path)
-add_args(view3d_parser, shipped_configs)
+view_parser.add_argument('--visualise', action='store_true', default=False, help='display a 3D rendering of the '
+                                                                                 'segmentation geometry in the provided '
+                                                                                 'file')
+view_parser.add_argument('-A', '--all-contours', action='store_true', default=False,
+                         help="show all contours [default: False]")
+view_parser.add_argument('-F', '--full-screen', action='store_true', default=False,
+                         help="show models in full-screen mode [default: False]")
+view_parser.add_argument('-M', '--exclude-mesh', action='store_true', default=False,
+                         help="do not display the main mesh [default: False]")
+view_parser.add_argument('-X', '--x-contours', action='store_true', default=False,
+                         help="show x contours [default: False]")
+view_parser.add_argument('-Y', '--y-contours', action='store_true', default=False,
+                         help="show y contours [default: False]")
+view_parser.add_argument('-Z', '--z-contours', action='store_true', default=False,
+                         help="show z contours [default: False]")
+view_parser.add_argument('-a', '--no-orientation-axes', action='store_true', default=False,
+                         help="do not display orientation axes (bottom right of viewport) [default: True]")
+view_parser.add_argument('-B', '--background-colour', nargs=3, default=[0.1, 0.2, 0.4], type=float,
+                         help="set the colour to be used for the background [default: 0.1 0.2, 0.4]")
+view_parser.add_argument('-c', '--cube-axes', type=int,
+                         help="how to display the cube axes; 0 - outer edges; 1 - closest triad; 2 - furthest triad; 3 - static triad; 4 - static edges; [default: None]")
+view_parser.add_argument('-e', '--view-edges', action='store_true', default=False, help="show edges [default: False]")
+view_parser.add_argument('-f', '--fill-holes', action='store_true', default=False,
+                         help="attempt to fill holes in mesh [default: False]")
+view_parser.add_argument('-i', '--smooth-iterations', default=50, type=int,
+                         help="the number of smoothing iterations [default: 50]")
+view_parser.add_argument(*normals_off['args'], **normals_off['kwargs'])
+view_parser.add_argument('-s', '--smooth', action='store_true', default=False,
+                         help="attempt to smoothen mesh [default: False]")
+view_parser.add_argument('-w', '--wireframe', action='store_true', default=False,
+                         help="use wireframe representation (but retains contours as solids) [default: False]")
+view_parser.add_argument(*primary_descriptor['args'], **primary_descriptor['kwargs'])
+view_parser.add_argument(*transparency['args'], **transparency['kwargs'])
+view_parser.add_argument(*mask_value['args'], **mask_value['kwargs'])
 
 # ===============================================================================
 # export
@@ -498,21 +393,12 @@ add_args(export_parser, transparency)
 add_args(export_parser, center)
 
 # get the full list of tools from the Parser object
-tool_list = ['all', 'core', 'formats', 'omero', 'readers', 'schema', 'main']
+tool_list += ['all_sfftk_plus', 'formats_sfftk_plus', 'omero', 'readers_sfftk_plus', 'schema_sfftk_plus', 'main_sfftk_plus']
 
 # tests
 test_help = "one or none of the following: {}".format(", ".join(tool_list))
-tests_parser = subparsers.add_parser('tests', description="Run unit tests", help="run unit tests")
-tests_parser.add_argument('tool', nargs='+', help=test_help)
-tests_parser.add_argument('-v', '--verbosity', default=1, type=int,
-                          help="set verbosity; valid values: %s [default: 0]" % ", ".join(map(str, verbosity_range)))
-add_args(tests_parser, config_path)
-add_args(tests_parser, shipped_configs)
-
-
-# test_parser = subparsers.add_parser('test', description="Run unit tests", help="run unit tests")
-# test_parser.add_argument('tool', nargs='*', default='all', help=test_help)
-# test_parser.add_argument('-v', '--verbosity', default=1, type=int, help="set verbosity; valid values: %s [default: 0]" % ", ".join(map(str, verbosity_range)))
+tests_parser_tools = tests_parser._actions[1]
+tests_parser_tools.help = test_help
 
 
 def parse_args(_args, use_shlex=False):
@@ -542,24 +428,35 @@ def parse_args(_args, use_shlex=False):
     # if we have no subcommands then show the available tools
     if len(_args) == 0:
         Parser.print_help()
-        sys.exit(0)
+        return os.EX_OK, None
     # if we only have a subcommand then show that subcommand's help
     elif len(_args) == 1:
         if _args[0] == '-V' or _args[0] == '--version':
             from .. import SFFTKPLUS_VERSION
             print_date("sfftk-plus version: {}".format(SFFTKPLUS_VERSION))
-            sys.exit(os.EX_USAGE)
+            return os.EX_OK, None
         elif _args[0] in Parser._actions[2].choices.keys():
             exec('{}_parser.print_help()'.format(_args[0]))
-            sys.exit(os.EX_USAGE)
+            return os.EX_OK, None
+    elif len(_args) == 2:
+        if _args[0] == 'create':
+            if _args[1] in _dict_iter_keys(Parser._actions[2].choices['roi']._actions[1].choices):
+                exec('{}_parser.print_help()'.format(_args[1]))
+                return os.EX_OK, None
+            elif _args[0] == 'attach':
+                if _args[1] in _dict_iter_keys(Parser._actions[2].choices['roi']._actions[1].choices):
+                    exec('{}_parser.print_help()'.format(_args[1]))
+                    return os.EX_OK, None
+            elif _args[0] == 'del':
+                if _args[1] in _dict_iter_keys(Parser._actions[2].choices['roi']._actions[1].choices):
+                    exec('{}_parser.print_help()'.format(_args[1]))
+                    return os.EX_OK, None
 
     # parse args
     args = Parser.parse_args(_args)
-    from sfftk.core.configs import get_config_file_path, load_configs
-    from .configs import SFFPConfigs
-    config_file_path = get_config_file_path(args, user_conf_fn='sffp.conf', user_folder='~/.sfftkplus',
-                                            config_class=SFFPConfigs)
-    configs = load_configs(config_file_path, config_class=SFFPConfigs)
+    from sfftk.core.configs import get_config_file_path, load_configs, Configs
+    config_file_path = get_config_file_path(args, user_conf_fn='sff.conf', user_folder='~/.sfftk', config_class=Configs)
+    configs = load_configs(config_file_path, config_class=Configs)
     # config
     if args.subcommand == 'config':
         if args.verbose:
@@ -568,7 +465,7 @@ def parse_args(_args, use_shlex=False):
         if args.config_subcommand == 'del':
             if args.name not in configs:
                 print_date("Missing config with name '{}'. Aborting...".format(args.name))
-                return None, configs
+                return os.EX_USAGE, configs
             # if force pass
             if not args.force:
                 default_choice = 'n'
@@ -583,11 +480,11 @@ def parse_args(_args, use_shlex=False):
                     choice = 'y'
                 else:
                     print_date("Invalid choice: '{}'")
-                    return None, configs
+                    return os.EX_DATAERR, configs
                 # act on user choice
                 if choice == 'n':
                     print_date("You have opted to cancel deletion of '{}'".format(args.name))
-                    return None, configs
+                    return os.EX_OK, configs
                 elif choice == 'y':
                     pass
         elif args.config_subcommand == 'set':
@@ -606,11 +503,11 @@ def parse_args(_args, use_shlex=False):
                         choice = 'y'
                     else:
                         print_date("Invalid choice: '{}'")
-                        return None, configs
+                        return os.EX_DATAERR, configs
                     # act on user choice
                     if choice == 'n':
                         print_date("You have opted to cancel overwriting of '{}'".format(args.name))
-                        return None, configs
+                        return os.EX_OK, configs
                     elif choice == 'y':
                         pass
     elif args.subcommand == 'list':
@@ -627,17 +524,17 @@ def parse_args(_args, use_shlex=False):
             ofn = '.'.join(args.sff_file.split('.')[:-1]) + '.{}'.format(args.format)
             if os.path.exists(ofn) and not args.overwrite:
                 print_date("Output file exists. Use --overwrite to replace it.")
-                return None, configs
+                return os.EX_USAGE, configs
             else:
                 print_date("Using output file {}".format(ofn))
                 args.output = ofn
         # ensure valid primary_descriptor
         if args.primary_descriptor:
             try:
-                assert args.primary_descriptor in ['threeDVolume', 'contourList', 'meshList', 'shapePrimitiveList']
+                assert args.primary_descriptor in ['three_d_volume', 'mesh_list', 'shape_primitive_list']
             except AssertionError:
-                print_date('Invalid value for primaryDescriptor: %s' % args.primary_descriptor)
-                return None, configs
+                print_date('Invalid value for primary_descriptor: %s' % args.primary_descriptor)
+                return os.EX_DATAERR, configs
 
         # ensure valid transparencey
         if args.transparency:
@@ -646,22 +543,22 @@ def parse_args(_args, use_shlex=False):
             except AssertionError:
                 print_date("Invalid value for transparency: {}; should be between 0 and 1 (inclusive)".format(
                     args.transparency))
-                return None, configs
+                return os.EX_DATAERR, configs
 
         # ensure mask value is an integer (or long)
         if args.mask_value:
             try:
-                assert isinstance(args.mask_value, int) or isinstance(args.mask_value, long)
+                assert isinstance(args.mask_value, int)  # or isinstance(args.mask_value, long)
             except AssertionError:
                 print_date("Non-integer for mask value")
-                return None, configs
+                return os.EX_DATAERR, configs
 
         # quick pick values are 1-based (not 0-based)
         # if args.quick_pick is not None:
         if args.quick_pick <= 0:
             print_date("Invalid value for --quick-pick. Should be 1-based value of item in list e.g. the value of "
                        "'a' in ['a', 'b'] is 1 (one).")
-            return None, configs
+            return os.EX_DATAERR, configs
         else:
             args.quick_pick -= 1  # make it a 0-based index for internal use
 
@@ -731,14 +628,14 @@ def parse_args(_args, use_shlex=False):
         #             verbosity_range[0], verbosity_range[-1], args.verbosity))
 
     # view3d
-    elif args.subcommand == 'view3d':
+    elif args.subcommand == 'view':
         if args.primary_descriptor:
             try:
-                assert args.primary_descriptor in ['threeDVolume', 'contourList', 'meshList', 'shapePrimitiveList']
+                assert args.primary_descriptor in ['three_d_volume', 'mesh_list', 'shape_primitive_list']
             except:
-                raise ValueError('Invalid value for primaryDescriptor: %s' % args.primary_descriptor)
+                raise ValueError('Invalid value for primary_descriptor: %s' % args.primary_descriptor)
 
-        # ensure valid transparencey
+        # ensure valid transparency
         assert 0 <= args.transparency <= 1
 
         #  ensure valid background colours
