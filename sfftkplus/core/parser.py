@@ -5,7 +5,7 @@ from __future__ import print_function
 
 import os
 
-from sfftk.core.parser import Parser, subparsers, convert_parser, prep_parser, config_parser, notes_parser, view_parser, tests_parser, tool_list
+from sfftk.core import parser # convert_parser, prep_parser, config_parser, notes_parser
 from sfftkrw.core import _dict_iter_keys
 from sfftkrw.core.parser import add_args
 from sfftkrw.core.print_tools import print_date
@@ -16,7 +16,7 @@ __date__ = '2016-06-10'
 
 verbosity_range = range(4)
 
-Parser.description = u"The Extended EMDB-SFF Toolkit (sfftk-plus)"
+parser.Parser.description = u"The Extended EMDB-SFF Toolkit (sfftk-plus)"
 
 # ===============================================================================
 # common arguments
@@ -212,7 +212,7 @@ overwrite = {
 # ===============================================================================
 # list subparser
 # ===============================================================================
-list_parser = subparsers.add_parser(
+list_parser = parser.subparsers.add_parser(
     'list',
     description="Lists various entities",
     help="list various entities"
@@ -243,7 +243,7 @@ add_args(local_or_remote, remote)
 # ===============================================================================
 # createroi subparser
 # ===============================================================================
-roi_parser = subparsers.add_parser('roi',
+roi_parser = parser.subparsers.add_parser('roi',
                                    description='Work with 2D regions-of-interest (ROIs). You can create, attach and delete ROIs to an OMERO server',
                                    help='work with 2D ROIs')
 
@@ -254,16 +254,16 @@ roi_subparser = roi_parser.add_subparsers(
     metavar='ROI tools',
 )
 
-createroi_parser = roi_subparser.add_parser('create', description="Create ROIs and write to file",
-                                            help="create ROIs and write to file")
-add_args(createroi_parser, config_path)
-add_args(createroi_parser, shipped_configs)
-createroi_parser.add_argument(*output['args'], **output['kwargs'])
-add_args(createroi_parser, overwrite)
-add_args(createroi_parser, format_)
-createroi_parser.add_argument(*verbose['args'], **verbose['kwargs'])
+create_roi_parser = roi_subparser.add_parser('create', description="Create ROIs and write to file",
+                                             help="create ROIs and write to file")
+add_args(create_roi_parser, config_path)
+add_args(create_roi_parser, shipped_configs)
+create_roi_parser.add_argument(*output['args'], **output['kwargs'])
+add_args(create_roi_parser, overwrite)
+add_args(create_roi_parser, format_)
+create_roi_parser.add_argument(*verbose['args'], **verbose['kwargs'])
 # mutex parser group
-image_name_root_or_xyz_createroi_parser = createroi_parser.add_mutually_exclusive_group()
+image_name_root_or_xyz_createroi_parser = create_roi_parser.add_mutually_exclusive_group()
 image_name_root_or_xyz_createroi_parser.add_argument('-I', '--image-name-root',
                                                      help="the root name of the file in OMERO; e.g. 'emd_1080-top.map' has image root 'emd_1080'")
 image_name_root_or_xyz_createroi_parser.add_argument(
@@ -273,24 +273,24 @@ image_name_root_or_xyz_createroi_parser.add_argument(
     metavar=('TOP-IMAGE-ID', 'FRONT-IMAGE-ID', 'RIGHT-IMAGE-ID'),
     help="explicit image IDs for top, front and right (side) perspectives, respectively"
 )
-createroi_parser.add_argument(
+create_roi_parser.add_argument(
     '-q', '--quick-pick',
     type=int,
     default=1,
     help="if multiple IDs are found pick the one at the specified position; "
          "uses 1-based indexing for natural positioning [default: 1]"
 )
-createroi_parser.add_argument(
+create_roi_parser.add_argument(
     'sff_file',
     help="file containing segmentations to be converted into ROIs; this could also be an ROI file (*.roi) for "
          "modifying the image ids"
 )
-createroi_parser.add_argument(*primary_descriptor['args'], **primary_descriptor['kwargs'])
-createroi_parser.add_argument(*transparency['args'], **transparency['kwargs'])
-createroi_parser.add_argument(*mask_value['args'], **mask_value['kwargs'])
-createroi_parser.add_argument(*normals_off['args'], **normals_off['kwargs'])
+create_roi_parser.add_argument(*primary_descriptor['args'], **primary_descriptor['kwargs'])
+create_roi_parser.add_argument(*transparency['args'], **transparency['kwargs'])
+create_roi_parser.add_argument(*mask_value['args'], **mask_value['kwargs'])
+create_roi_parser.add_argument(*normals_off['args'], **normals_off['kwargs'])
 
-createroi_parser.add_argument(
+create_roi_parser.add_argument(
     '-i', '--reset-ids',
     action='store_true',
     default=False,
@@ -300,86 +300,86 @@ createroi_parser.add_argument(
 # ===============================================================================
 # attachroi subparser
 # ===============================================================================
-attachroi_parser = roi_subparser.add_parser('attach',
-                                            description="Associate the ROIs from the file with the image (by ID) in the OMERO-server",
-                                            help="attach ROIs to image")
-attachroi_parser.add_argument('roi_file', help="file with ROIs")
-attachroi_parser.add_argument('-x', '--x-image-id', type=int, help="id of front image in OMERO-server")
-attachroi_parser.add_argument('-y', '--y-image-id', type=int, help="id of rightside image in OMERO-server")
-attachroi_parser.add_argument('-z', '--z-image-id', type=int, help="id of top image in OMERO-server")
+attach_roi_parser = roi_subparser.add_parser('attach',
+                                             description="Associate the ROIs from the file with the image (by ID) in the OMERO-server",
+                                             help="attach ROIs to image")
+attach_roi_parser.add_argument('roi_file', help="file with ROIs")
+attach_roi_parser.add_argument('-x', '--x-image-id', type=int, help="id of front image in OMERO-server")
+attach_roi_parser.add_argument('-y', '--y-image-id', type=int, help="id of rightside image in OMERO-server")
+attach_roi_parser.add_argument('-z', '--z-image-id', type=int, help="id of top image in OMERO-server")
 # attachroi_parser.add_argument(*user['args'], **user['kwargs'])
 # attachroi_parser.add_argument(*password['args'], **password['kwargs'])
 # attachroi_parser.add_argument(*host['args'], **host['kwargs'])
 # attachroi_parser.add_argument(*port['args'], **port['kwargs'])
-attachroi_parser.add_argument(*verbose['args'], **verbose['kwargs'])
-attachroi_parser.add_argument(*config_path['args'], **config_path['kwargs'])
-add_args(attachroi_parser, shipped_configs)
-local_or_remote = attachroi_parser.add_mutually_exclusive_group()
+attach_roi_parser.add_argument(*verbose['args'], **verbose['kwargs'])
+attach_roi_parser.add_argument(*config_path['args'], **config_path['kwargs'])
+add_args(attach_roi_parser, shipped_configs)
+local_or_remote = attach_roi_parser.add_mutually_exclusive_group()
 add_args(local_or_remote, local)
 add_args(local_or_remote, remote)
 
 # ===============================================================================
 # delroi subparser
 # ===============================================================================
-delroi_parser = roi_subparser.add_parser('del',
-                                         description="Delete all ROIs associated with the image (by ID) in the OMERO-server",
-                                         help="delete ROIs associated with image")
-delroi_type_group = delroi_parser.add_mutually_exclusive_group()
+del_roi_parser = roi_subparser.add_parser('del',
+                                          description="Delete all ROIs associated with the image (by ID) in the OMERO-server",
+                                          help="delete ROIs associated with image")
+delroi_type_group = del_roi_parser.add_mutually_exclusive_group()
 delroi_type_group.add_argument('-r', '--roi-id', type=int, help="id of ROI in OMERO-server")
 delroi_type_group.add_argument(*image_id['args'], **image_id['kwargs'])
 # delroi_parser.add_argument(*user['args'], **user['kwargs'])
 # delroi_parser.add_argument(*password['args'], **password['kwargs'])
 # delroi_parser.add_argument(*host['args'], **host['kwargs'])
 # delroi_parser.add_argument(*port['args'], **port['kwargs'])
-delroi_parser.add_argument(*verbose['args'], **verbose['kwargs'])
-delroi_parser.add_argument(*config_path['args'], **config_path['kwargs'])
-add_args(delroi_parser, shipped_configs)
-local_or_remote = delroi_parser.add_mutually_exclusive_group()
+del_roi_parser.add_argument(*verbose['args'], **verbose['kwargs'])
+del_roi_parser.add_argument(*config_path['args'], **config_path['kwargs'])
+add_args(del_roi_parser, shipped_configs)
+local_or_remote = del_roi_parser.add_mutually_exclusive_group()
 add_args(local_or_remote, local)
 add_args(local_or_remote, remote)
 
 # ===============================================================================
 # view3d subparser
 # ===============================================================================
-view_parser.add_argument('--visualise', action='store_true', default=False, help='display a 3D rendering of the '
+parser.view_parser.add_argument('--visualise', action='store_true', default=False, help='display a 3D rendering of the '
                                                                                  'segmentation geometry in the provided '
                                                                                  'file')
-view_parser.add_argument('-A', '--all-contours', action='store_true', default=False,
+parser.view_parser.add_argument('-A', '--all-contours', action='store_true', default=False,
                          help="show all contours [default: False]")
-view_parser.add_argument('-F', '--full-screen', action='store_true', default=False,
+parser.view_parser.add_argument('-F', '--full-screen', action='store_true', default=False,
                          help="show models in full-screen mode [default: False]")
-view_parser.add_argument('-M', '--exclude-mesh', action='store_true', default=False,
+parser.view_parser.add_argument('-M', '--exclude-mesh', action='store_true', default=False,
                          help="do not display the main mesh [default: False]")
-view_parser.add_argument('-X', '--x-contours', action='store_true', default=False,
+parser.view_parser.add_argument('-X', '--x-contours', action='store_true', default=False,
                          help="show x contours [default: False]")
-view_parser.add_argument('-Y', '--y-contours', action='store_true', default=False,
+parser.view_parser.add_argument('-Y', '--y-contours', action='store_true', default=False,
                          help="show y contours [default: False]")
-view_parser.add_argument('-Z', '--z-contours', action='store_true', default=False,
+parser.view_parser.add_argument('-Z', '--z-contours', action='store_true', default=False,
                          help="show z contours [default: False]")
-view_parser.add_argument('-a', '--no-orientation-axes', action='store_true', default=False,
+parser.view_parser.add_argument('-a', '--no-orientation-axes', action='store_true', default=False,
                          help="do not display orientation axes (bottom right of viewport) [default: True]")
-view_parser.add_argument('-B', '--background-colour', nargs=3, default=[0.1, 0.2, 0.4], type=float,
+parser.view_parser.add_argument('-B', '--background-colour', nargs=3, default=[0.1, 0.2, 0.4], type=float,
                          help="set the colour to be used for the background [default: 0.1 0.2, 0.4]")
-view_parser.add_argument('-c', '--cube-axes', type=int,
+parser.view_parser.add_argument('-c', '--cube-axes', type=int,
                          help="how to display the cube axes; 0 - outer edges; 1 - closest triad; 2 - furthest triad; 3 - static triad; 4 - static edges; [default: None]")
-view_parser.add_argument('-e', '--view-edges', action='store_true', default=False, help="show edges [default: False]")
-view_parser.add_argument('-f', '--fill-holes', action='store_true', default=False,
+parser.view_parser.add_argument('-e', '--view-edges', action='store_true', default=False, help="show edges [default: False]")
+parser.view_parser.add_argument('-f', '--fill-holes', action='store_true', default=False,
                          help="attempt to fill holes in mesh [default: False]")
-view_parser.add_argument('-i', '--smooth-iterations', default=50, type=int,
+parser.view_parser.add_argument('-i', '--smooth-iterations', default=50, type=int,
                          help="the number of smoothing iterations [default: 50]")
-view_parser.add_argument(*normals_off['args'], **normals_off['kwargs'])
-view_parser.add_argument('-s', '--smooth', action='store_true', default=False,
+parser.view_parser.add_argument(*normals_off['args'], **normals_off['kwargs'])
+parser.view_parser.add_argument('-s', '--smooth', action='store_true', default=False,
                          help="attempt to smoothen mesh [default: False]")
-view_parser.add_argument('-w', '--wireframe', action='store_true', default=False,
+parser.view_parser.add_argument('-w', '--wireframe', action='store_true', default=False,
                          help="use wireframe representation (but retains contours as solids) [default: False]")
-view_parser.add_argument(*primary_descriptor['args'], **primary_descriptor['kwargs'])
-view_parser.add_argument(*transparency['args'], **transparency['kwargs'])
-view_parser.add_argument(*mask_value['args'], **mask_value['kwargs'])
+parser.view_parser.add_argument(*primary_descriptor['args'], **primary_descriptor['kwargs'])
+parser.view_parser.add_argument(*transparency['args'], **transparency['kwargs'])
+parser.view_parser.add_argument(*mask_value['args'], **mask_value['kwargs'])
 
 # ===============================================================================
 # export
 # ===============================================================================
-export_parser = subparsers.add_parser('export', description="Export segmentation as various file formats",
+export_parser = parser.subparsers.add_parser('export', description="Export segmentation as various file formats",
                                       help="export as file")
 export_parser.add_argument('sff_file', help="any SFF file")
 export_parser.add_argument(*primary_descriptor['args'], **primary_descriptor['kwargs'])
@@ -393,11 +393,11 @@ add_args(export_parser, transparency)
 add_args(export_parser, center)
 
 # get the full list of tools from the Parser object
-tool_list += ['all_sfftk_plus', 'formats_sfftk_plus', 'omero', 'readers_sfftk_plus', 'schema_sfftk_plus', 'main_sfftk_plus']
+parser.tool_list += ['all_sfftk_plus', 'formats_sfftk_plus', 'omero', 'readers_sfftk_plus', 'schema_sfftk_plus', 'main_sfftk_plus']
 
 # tests
-test_help = "one or none of the following: {}".format(", ".join(tool_list))
-tests_parser_tools = tests_parser._actions[1]
+test_help = "one or none of the following: {}".format(", ".join(parser.tool_list))
+tests_parser_tools = parser.tests_parser._actions[1]
 tests_parser_tools.help = test_help
 
 
@@ -422,12 +422,15 @@ def parse_args(_args, use_shlex=False):
         import shlex
         _args = shlex.split(_args)
 
+    if _args[0] in ['convert', 'notes', 'prep', 'config']:
+        return parser.parse_args(_args)
+
     """
     :TODO: handle credentials in configs here instead of sffplus.py
     """
     # if we have no subcommands then show the available tools
     if len(_args) == 0:
-        Parser.print_help()
+        parser.Parser.print_help()
         return os.EX_OK, None
     # if we only have a subcommand then show that subcommand's help
     elif len(_args) == 1:
@@ -435,25 +438,41 @@ def parse_args(_args, use_shlex=False):
             from .. import SFFTKPLUS_VERSION
             print_date("sfftk-plus version: {}".format(SFFTKPLUS_VERSION))
             return os.EX_OK, None
-        elif _args[0] in Parser._actions[2].choices.keys():
-            exec('{}_parser.print_help()'.format(_args[0]))
+        elif _args[0] in parser.Parser._actions[2].choices.keys():
+            try:
+                exec('parser.{}_parser.print_help()'.format(_args[0]))
+            except AttributeError:
+                exec('{}_parser.print_help()'.format(_args[0]))
             return os.EX_OK, None
     elif len(_args) == 2:
-        if _args[0] == 'create':
-            if _args[1] in _dict_iter_keys(Parser._actions[2].choices['roi']._actions[1].choices):
-                exec('{}_parser.print_help()'.format(_args[1]))
-                return os.EX_OK, None
-            elif _args[0] == 'attach':
-                if _args[1] in _dict_iter_keys(Parser._actions[2].choices['roi']._actions[1].choices):
-                    exec('{}_parser.print_help()'.format(_args[1]))
+        if _args[0] == 'roi':
+            if _args[1] == 'create':
+                if _args[1] in _dict_iter_keys(parser.Parser._actions[2].choices['roi']._actions[1].choices):
+                    exec('{}_roi_parser.print_help()'.format(_args[1]))
+                    return os.EX_OK, None
+            elif _args[1] == 'attach':
+                if _args[1] in _dict_iter_keys(parser.Parser._actions[2].choices['roi']._actions[1].choices):
+                    exec('{}_roi_parser.print_help()'.format(_args[1]))
                     return os.EX_OK, None
             elif _args[0] == 'del':
-                if _args[1] in _dict_iter_keys(Parser._actions[2].choices['roi']._actions[1].choices):
-                    exec('{}_parser.print_help()'.format(_args[1]))
+                if _args[1] in _dict_iter_keys(parser.Parser._actions[2].choices['roi']._actions[1].choices):
+                    exec('{}_roi_parser.print_help()'.format(_args[1]))
                     return os.EX_OK, None
+        elif _args[0] == 'notes':
+            if _args[1] in _dict_iter_keys(parser.Parser._actions[2].choices['notes']._actions[1].choices):
+                exec('parser.{}_notes_parser.print_help()'.format(_args[1]))
+                return os.EX_OK, None
+        elif _args[0] == 'prep':
+            if _args[1] in _dict_iter_keys(parser.Parser._actions[2].choices['prep']._actions[1].choices):
+                exec('parser.{}_prep_parser.print_help()'.format(_args[1]))
+                return os.EX_OK, None
+        elif _args[0] == 'config':
+            if _args[1] in _dict_iter_keys(parser.Parser._actions[2].choices['config']._actions[1].choices):
+                exec('parser.{}_config_parser.print_help()'.format(_args[1]))
+                return os.EX_OK, None
 
     # parse args
-    args = Parser.parse_args(_args)
+    args = parser.Parser.parse_args(_args)
     from sfftk.core.configs import get_config_file_path, load_configs, Configs
     config_file_path = get_config_file_path(args, user_conf_fn='sff.conf', user_folder='~/.sfftk', config_class=Configs)
     configs = load_configs(config_file_path, config_class=Configs)
@@ -604,10 +623,10 @@ def parse_args(_args, use_shlex=False):
             args.tool = ['all']
         for tool in args.tool:
             try:
-                assert tool in tool_list
+                assert tool in parser.tool_list
             except AssertionError:
                 print_date(
-                    "Unknown tool: {}; Available tools for test: {}".format(tool, ", ".join(tool_list))
+                    "Unknown tool: {}; Available tools for test: {}".format(tool, ", ".join(parser.tool_list))
                 )
                 return os.EX_USAGE, configs
         if args.verbosity:

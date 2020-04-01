@@ -12,11 +12,10 @@ import os
 import re
 import sys
 
+import sfftkrw.schema.adapter_v0_8_0_dev1 as schema
+from sfftk import sff # sfftk handlers
 from sfftkrw.core.print_tools import print_date, print_static
 from sfftkrw.sffrw import _module_test_runner, _discover_test_runner
-from sfftk.sff import handle_view
-
-import sfftkrw.schema.adapter_v0_8_0_dev1 as schema
 
 __author__ = "Paul K. Korir, PhD"
 __email__ = "pkorir@ebi.ac.uk, paul.korir@gmail.com"
@@ -292,7 +291,8 @@ def handle_view(args, configs):
             print_date("Unsupported file type: {}".format(args.from_file))
             return os.EX_DATAERR
     else:
-        return handle_view(args, configs)
+        return sff.handle_view(args, configs)
+
 
 def handle_export(args, configs):
     """
@@ -358,7 +358,8 @@ def handle_tests(args, configs):
     if 'all' in args.tool:
         from .unittests import test_main
         _module_test_runner(test_main, args)
-        _discover_test_runner("sfftkplus.unittests", args, top_level_dir=os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        _discover_test_runner("sfftkplus.unittests", args,
+                              top_level_dir=os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     else:
         if 'main' in args.tool:
             from .unittests import test_main
@@ -395,10 +396,6 @@ def main():
             return handle_configs(args, configs)
         elif args.subcommand == 'roi':
             return handle_roi(args, configs)
-        elif args.subcommand == 'attachroi':
-            return handle_attachroi(args, configs)
-        elif args.subcommand == 'delroi':
-            return handle_delroi(args, configs)
         elif args.subcommand == "view":
             return handle_view(args, configs)
         elif args.subcommand == "list":
@@ -407,6 +404,12 @@ def main():
             return handle_export(args, configs)
         elif args.subcommand == "tests":
             return handle_tests(args, configs)
+        # other handlers
+        elif args.subcommand == "convert":
+            return sff.handle_convert(args, configs)
+        elif args.subcommand == "notes":
+            return sff.handle_notes(args, configs)
+
     except KeyboardInterrupt:
         # handle keyboard interrupt
         return os.EX_OK
