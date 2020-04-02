@@ -422,8 +422,9 @@ def parse_args(_args, use_shlex=False):
         import shlex
         _args = shlex.split(_args)
 
-    if _args[0] in ['convert', 'notes', 'prep', 'config']:
-        return parser.parse_args(_args)
+    if len(_args) > 0:
+        if _args[0] in ['convert', 'notes', 'prep', 'config']:
+            return parser.parse_args(_args)
 
     """
     :TODO: handle credentials in configs here instead of sffplus.py
