@@ -93,13 +93,13 @@ def get_image_size(cursor, image_id):
     :param image_id: a valid image id
     :return tuple image_ids: (sizex, sizey, sizez)
     """
-    query_string = "select sizex, sizey, sizez from pixels where id={}".format(image_id)
-    cursor.execute(query_string)
-    rows = cursor.fetchall()
-    if rows:
-        return rows[0]
-    else:
-        return os.EX_OK
+    if image_id is not None:
+        query_string = "select sizex, sizey, sizez from pixels where id={}".format(image_id)
+        cursor.execute(query_string)
+        rows = cursor.fetchall()
+        if rows:
+            return rows[0]
+    return os.EX_OK
 
 
 class ROIContours(object):
