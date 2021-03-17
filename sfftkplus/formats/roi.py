@@ -56,7 +56,7 @@ def get_image_id(cursor, image_name_root, view, ext='map', quick_pick=None):
     except AssertionError:
         print_date("Not psycopg2.extensions.cursor object: {}".format(cursor))
         sys.exit(1)
-    views = ['top', 'front', 'side']
+    views = ['top', 'front', 'right']
     try:
         assert view in views
     except AssertionError:
