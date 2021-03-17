@@ -317,7 +317,7 @@ class ROIHeader(object):
                 cur = conn.cursor()
                 self.top_id = get_image_id(cur, args.image_name_root, 'top', quick_pick=args.quick_pick)
                 self.front_id = get_image_id(cur, args.image_name_root, 'front', quick_pick=args.quick_pick)
-                self.right_id = get_image_id(cur, args.image_name_root, 'side', quick_pick=args.quick_pick)
+                self.right_id = get_image_id(cur, args.image_name_root, 'right', quick_pick=args.quick_pick)
                 # sanity check
                 assert self.top_id != self.front_id and self.right_id != self.front_id
             elif args.top_front_right is not None:
