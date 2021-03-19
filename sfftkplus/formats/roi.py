@@ -24,6 +24,7 @@ and limitations under the License.
 from __future__ import division, print_function
 
 import os
+import math
 import sys
 
 import psycopg2
@@ -482,6 +483,16 @@ class ROISegmentation(object):
             print_date("OK", incl_date=False)
         return omero_rois
 
+    @staticmethod
+    def _rotate(x, y, angle, center=(0, 0)):
+        # translate to origin
+        new_x, new_y = x - center[0], y - center[0]
+        # rotate
+        angle_radians = math.radians(angle)
+        rot_x, rot_y = new_x * math.cos(angle_radians) - new_y * math.sin(angle_radians), new_x * math.sin(angle_radians) + new_y * math.cos(angle_radians)
+        # translate back from origin
+        return rot_x + center[0], rot_y + center[1]
+
     def _export_rois_json(self, path, fn_root, orientation, args, configs, fill_alpha=1.0, stroke_alpha=1.0, font_size=2.0,
                           stroke_colour=(1, 1, 0), stroke_width=0.22):
         """Export ROIs for this orientation as JSON (instead of as XML)
@@ -583,16 +594,18 @@ class ROISegmentation(object):
                             if orientation == 'x':
                                 point_str += 'M {:.2f} {:.2f} '.format(point[1], sizeZ - point[2])
                             elif orientation == 'y':
-                                point_str += 'M {:.2f} {:.2f} '.format(sizeX - point[0], sizeZ - point[2])
+                                # point_str += 'M {:.2f} {:.2f} '.format(sizeX - point[0], sizeZ - point[2])
+                                point_str += 'M {:.2f} {:.2f} '.format(*self._rotate(point[0], point[2], -90, (sizeX/2, sizeZ/2 )))
                             elif orientation == 'z':
-                                point_str += 'M {:.2f} {:.2f} '.format(point[1], point[0])
+                                point_str += 'M {:.2f} {:.2f} '.format(*self._rotate(point[1], point[0], -90, (sizeY/2, sizeX/2)))
                         else:
                             if orientation == 'x':
                                 point_str += 'L {:.2f} {:.2f} '.format(point[1], sizeZ - point[2])
                             elif orientation == 'y':
-                                point_str += 'L {:.2f} {:.2f} '.format(sizeX - point[0], sizeZ - point[2])
+                                # point_str += 'L {:.2f} {:.2f} '.format(sizeX - point[0], sizeZ - point[2])
+                                point_str += 'L {:.2f} {:.2f} '.format(*self._rotate(point[0], point[2], -90, (sizeX/2, sizeZ/2 )))
                             elif orientation == 'z':
-                                point_str += 'L {:.2f} {:.2f} '.format(point[1], point[0])
+                                point_str += 'L {:.2f} {:.2f} '.format(*self._rotate(point[1], point[0], -90, (sizeY/2, sizeX/2)))
                     # if the last contour point is the same as the first the it is closed
                     # if contour[point_id] == contour[0]:
                     point_str += 'z'
