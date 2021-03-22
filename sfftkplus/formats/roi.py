@@ -595,17 +595,17 @@ class ROISegmentation(object):
                                 point_str += 'M {:.2f} {:.2f} '.format(point[1], sizeZ - point[2])
                             elif orientation == 'y':
                                 # point_str += 'M {:.2f} {:.2f} '.format(sizeX - point[0], sizeZ - point[2])
-                                point_str += 'M {:.2f} {:.2f} '.format(*self._rotate(point[0], point[2], -90, (sizeX/2, sizeZ/2 )))
+                                point_str += 'M {:.2f} {:.2f} '.format(*self._rotate(point[0], point[2], 90, (sizeX/2, sizeZ/2 )))
                             elif orientation == 'z':
-                                point_str += 'M {:.2f} {:.2f} '.format(*self._rotate(point[1], point[0], -90, (sizeY/2, sizeX/2)))
+                                point_str += 'M {:.2f} {:.2f} '.format(*self._rotate(point[1], point[0], 90, (sizeY/2, sizeX/2)))
                         else:
                             if orientation == 'x':
                                 point_str += 'L {:.2f} {:.2f} '.format(point[1], sizeZ - point[2])
                             elif orientation == 'y':
                                 # point_str += 'L {:.2f} {:.2f} '.format(sizeX - point[0], sizeZ - point[2])
-                                point_str += 'L {:.2f} {:.2f} '.format(*self._rotate(point[0], point[2], -90, (sizeX/2, sizeZ/2 )))
+                                point_str += 'L {:.2f} {:.2f} '.format(*self._rotate(point[0], point[2], 90, (sizeX/2, sizeZ/2 )))
                             elif orientation == 'z':
-                                point_str += 'L {:.2f} {:.2f} '.format(*self._rotate(point[1], point[0], -90, (sizeY/2, sizeX/2)))
+                                point_str += 'L {:.2f} {:.2f} '.format(*self._rotate(point[1], point[0], 90, (sizeY/2, sizeX/2)))
                     # if the last contour point is the same as the first the it is closed
                     # if contour[point_id] == contour[0]:
                     point_str += 'z'
