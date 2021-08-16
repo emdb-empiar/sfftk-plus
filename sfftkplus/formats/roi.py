@@ -626,24 +626,24 @@ class ROISegmentation(object):
             if orientation == 'x':
                 if self.roi_seg.image_ids.front is not None:
                     odir = str(self.roi_seg.image_ids.front)
-                    ofn = fn_root.format(self.roi_seg.image_ids.front, o)
+                    ofn = fn_root.format(o)
                 else:
                     odir = orientation
-                    ofn = fn_root.format(orientation, o)
+                    ofn = fn_root.format(o)
             elif orientation == 'y':
                 if self.roi_seg.image_ids.right is not None:
                     odir = str(self.roi_seg.image_ids.right)
-                    ofn = fn_root.format(self.roi_seg.image_ids.right, o)
+                    ofn = fn_root.format(o)
                 else:
                     odir = orientation
-                    ofn = fn_root.format(orientation, o)
+                    ofn = fn_root.format(o)
             elif orientation == 'z':
                 if self.roi_seg.image_ids.top is not None:
                     odir = str(self.roi_seg.image_ids.top)
-                    ofn = fn_root.format(self.roi_seg.image_ids.top, o)
+                    ofn = fn_root.format(o)
                 else:
                     odir = orientation
-                    ofn = fn_root.format(orientation, o)
+                    ofn = fn_root.format(o)
             # write out the JSON for this orientation and this slice
             if not os.path.exists(os.path.join(path, odir)):
                 os.makedirs(os.path.join(path, odir), mode=0o0755)
@@ -703,5 +703,5 @@ class ROISegmentation(object):
             # written; rather, the filename conveys: i) the filename base; ii) the output format
             # the fn_root var is constructed from the fn argument
             fn_base = os.path.basename(fn)
-            fn_root = '.'.join(fn_base.split('.')[:-1]) + '-{}-{}.json'
+            fn_root = '.'.join(fn_base.split('.')[:-1]) + '-{}.json'
             return self._export_json(path, fn_root, args, configs, *_args, **_kwargs)
