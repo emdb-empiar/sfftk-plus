@@ -26,6 +26,7 @@ from __future__ import division, print_function
 import os
 import math
 import sys
+import numpy
 
 import psycopg2
 
@@ -220,7 +221,7 @@ class ROISegment(object):
 
     @id.setter
     def id(self, value):
-        assert value >= 0 and isinstance(value, int)
+        assert value >= 0 and (isinstance(value, int) or isinstance(value, numpy.int64))
         self._id = value
 
     @property
