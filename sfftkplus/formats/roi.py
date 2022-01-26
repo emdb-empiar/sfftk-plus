@@ -26,7 +26,6 @@ from __future__ import division, print_function
 import os
 import math
 import sys
-import numpy
 
 import psycopg2
 
@@ -221,7 +220,7 @@ class ROISegment(object):
 
     @id.setter
     def id(self, value):
-        assert value >= 0 and (isinstance(value, int) or isinstance(value, numpy.int64))
+        assert value >= 0 and isinstance(value, int)
         self._id = value
 
     @property
@@ -254,7 +253,7 @@ class ROISegment(object):
                 oriented_contours['x'][x] = [xContour]
             else:
                 oriented_contours['x'][x] += [xContour]
-        #  yContours
+        # yContours
         for yContour in self.contours.y_contours:
             y = int(yContour.p[0].get_y())
             if y not in oriented_contours['y']:
