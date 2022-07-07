@@ -37,18 +37,21 @@ class TestFormats(unittest.TestCase):
     def test_from_vtk(self):
         """Test that we can create an ROISegmentation from VTK"""
         args, configs = parse_args(
-                'createroi {} -o file.roi'.format(os.path.join(TEST_DATA_PATH, 'sff', 'test_emd_1832.sff')), use_shlex=True)
+                'roi create {} -f roi -I emd_1832 '.format(os.path.join(TEST_DATA_PATH, 'sff', 'test_emd_1832_v0.8.0.dev1.sff')), use_shlex=True)
+        print(args)
         vtk_segmentation = self.sff_segmentation.as_vtk(args, configs)
-        #  to get contours we must first slice!
+        print(vtk_segmentation)
+        # to get contours we must first slice!
         vtk_segmentation.slice()
         roi_segmentation = vtk_segmentation.as_roi(args, configs)
+        print(roi_segmentation.segments)
         self.assertEqual(len(roi_segmentation.segments), len(self.roi_segmentation.segments))
         self.assertIsInstance(roi_segmentation.segments[0], type(self.roi_segmentation.segments[0]))
 
     # def test_roi_json(self):
     #     """Test that we can write ROIs as JSONs"""
     #     args, configs = parse_args('createroi {} -o file.json'.format(self.sff_file), use_shlex=True)
-    #     # vtk_segmentation = self.sff_segmentation.
+    #     vtk_segmentation = self.sff_segmentation.
 
     # def test_roi_get_image_size(self):
     #     """Test that we can get the image size"""
