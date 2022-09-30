@@ -10,14 +10,12 @@ __email__ = "pkorir@ebi.ac.uk, paul.korir@gmail.com"
 __date__ = "2017-08-14"
 
 import os
-import sys
-import shlex
 import unittest
+
 from . import TEST_DATA_PATH
 from ..core.parser import parse_args
 from ..formats import roi
 from ..schema import SFFPSegmentation
-import psycopg2
 
 
 class TestFormats(unittest.TestCase):
@@ -37,7 +35,8 @@ class TestFormats(unittest.TestCase):
     def test_from_vtk(self):
         """Test that we can create an ROISegmentation from VTK"""
         args, configs = parse_args(
-                'roi create {} -f roi -I emd_1832 '.format(os.path.join(TEST_DATA_PATH, 'sff', 'test_emd_1832_v0.8.0.dev1.sff')), use_shlex=True)
+            'roi create {} -f roi -I emd_1832 '.format(
+                os.path.join(TEST_DATA_PATH, 'sff', 'test_emd_1832_v0.8.0.dev1.sff')), use_shlex=True)
         print(args)
         vtk_segmentation = self.sff_segmentation.as_vtk(args, configs)
         print(vtk_segmentation)
@@ -48,13 +47,14 @@ class TestFormats(unittest.TestCase):
         self.assertEqual(len(roi_segmentation.segments), len(self.roi_segmentation.segments))
         self.assertIsInstance(roi_segmentation.segments[0], type(self.roi_segmentation.segments[0]))
 
-    # def test_roi_json(self):
-    #     """Test that we can write ROIs as JSONs"""
-    #     args, configs = parse_args('createroi {} -o file.json'.format(self.sff_file), use_shlex=True)
-    #     vtk_segmentation = self.sff_segmentation.
+    def test_export(self):
+        """Test that we can export as vtp files"""
+        args, configs = parse_args(
+            'export {}'.format(
+                os.path.join(TEST_DATA_PATH, 'sff', 'test_emd_1832_v0.8.0.dev1.json')
+            ), use_shlex=True
+        )
+        sff_seg = SFFPSegmentation.from_file(args.sff_file)
+        vtk_segmentation = sff_seg.as_vtk(args, configs)
+        vtk_segmentation.export('original_transform', args, configs)
 
-    # def test_roi_get_image_size(self):
-    #     """Test that we can get the image size"""
-    #     args, configs = parse_args('createroi --reset-ids {} --config-path {}'.format(self.roi_file, self.config_fn), use_shlex=True)
-    #     size = self.roi_segmentation.header.get_image_size(args, configs)
-    #     self.assertTupleEqual(size, (64, 64, 64))

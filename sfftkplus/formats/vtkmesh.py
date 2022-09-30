@@ -112,6 +112,14 @@ class VTKMesh(object):
     def vtk_obj(self):
         return self._vtk_obj
 
+    @vtk_obj.setter
+    def vtk_obj(self, vtk_obj):
+        try:
+            assert isinstance(vtk_obj, vtk.vtkPolyData)
+        except AssertionError:
+            raise ValueError('vtk_obj must be of type vtk.vtkPolyData')
+        self._vtk_obj = vtk_obj
+
     @property
     def colour(self):
         return self._colour
@@ -299,7 +307,7 @@ class VTKMesh(object):
         """
         assert resolution > 0
         vtkmesh = cls(colour, args, *args_, **kwargs_)
-        from sfftk.schema import SFFEllipsoid, SFFCuboid, SFFCylinder, SFFCone
+        from sfftkrw import SFFEllipsoid, SFFCuboid, SFFCylinder, SFFCone
         if isinstance(shape, SFFEllipsoid):
             vtk_shape = vtk.vtkSphereSource()
             vtk_shape.SetRadius(shape.x)
@@ -347,6 +355,15 @@ class VTKMesh(object):
         transformFilter = vtk.vtkTransformFilter()
         transformFilter.SetInputData(self.vtk_obj)
         transformFilter.SetTransform(translation)
+        transformFilter.Update()
+        return transformFilter.GetOutput()
+
+    def scale(self, by):
+        scale = vtk.vtkTransform()
+        scale.Scale(*by)
+        transformFilter = vtk.vtkTransformFilter()
+        transformFilter.SetInputData(self.vtk_obj)
+        transformFilter.SetTransform(scale)
         transformFilter.Update()
         return transformFilter.GetOutput()
 
@@ -831,12 +848,27 @@ class VTKSegmentation(object):
             segment_data['colour'] = list(map(float, segment.colour))
             segment_data['meshes'] = list()
             for j, mesh in enumerate(segment.meshes):
-                if args.center:
+                if args.apply_original_transform:
+                    transform = self._sff_seg.transform_list[0].data_array
+                    # scale
+                    s_x = transform[0, 0]
+                    s_y = transform[1, 1]
+                    s_z = transform[2, 2]
+                    # translate
+                    t_x = transform[0, 3]
+                    t_y = transform[1, 3]
+                    t_z = transform[2, 3]
+                    mesh3 = VTKMesh(mesh.colour, mesh.vtk_args)
+                    # must scale first
+                    mesh3.vtk_obj = mesh.scale((s_x, s_y, s_z))
+                    # then translate
+                    mesh2 = mesh3.translate((t_x, t_y, t_z))
+                elif args.center:
                     # center
                     x, y, z = center_point
                     to = (-x, -y, -z)
                     mesh2 = mesh.translate(to)
-                else:
+                else:  # no transform
                     mesh2 = mesh.vtk_obj
                 # decimate
                 decimateMesh = vtk.vtkDecimatePro()

@@ -350,11 +350,11 @@ parser.view_parser.add_argument('-F', '--full-screen', action='store_true', defa
                          help="show models in full-screen mode [default: False]")
 parser.view_parser.add_argument('-M', '--exclude-mesh', action='store_true', default=False,
                          help="do not display the main mesh [default: False]")
-parser.view_parser.add_argument('-X', '--x-contours', action='store_true', default=False,
+parser.view_parser.add_argument('-x', '--x-contours', action='store_true', default=False,
                          help="show x contours [default: False]")
-parser.view_parser.add_argument('-Y', '--y-contours', action='store_true', default=False,
+parser.view_parser.add_argument('-y', '--y-contours', action='store_true', default=False,
                          help="show y contours [default: False]")
-parser.view_parser.add_argument('-Z', '--z-contours', action='store_true', default=False,
+parser.view_parser.add_argument('-z', '--z-contours', action='store_true', default=False,
                          help="show z contours [default: False]")
 parser.view_parser.add_argument('-a', '--no-orientation-axes', action='store_true', default=False,
                          help="do not display orientation axes (bottom right of viewport) [default: True]")
@@ -390,7 +390,19 @@ export_parser.add_argument(*output_path['args'], **output_path['kwargs'])
 add_args(export_parser, config_path)
 add_args(export_parser, shipped_configs)
 add_args(export_parser, transparency)
-add_args(export_parser, center)
+transform_parser_mutex = export_parser.add_mutually_exclusive_group()
+transform_parser_mutex.add_argument(
+    '--apply-original-transform',
+    default=True,
+    action='store_true',
+    help="apply the original transform from the EMDB-SFF file (transform 0)"
+)
+add_args(transform_parser_mutex, center)
+transform_parser_mutex.add_argument(
+    '--no-transform',
+    action='store_true',
+    help="do not transform (leaves segmentation in image space)"
+)
 
 # get the full list of tools from the Parser object
 parser.tool_list += ['all_sfftk_plus', 'formats_sfftk_plus', 'omero', 'readers_sfftk_plus', 'schema_sfftk_plus', 'main_sfftk_plus']
