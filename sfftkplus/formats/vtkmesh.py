@@ -32,6 +32,7 @@ import numpy
 import vtk
 from sfftk.readers.segreader import get_root
 from sfftkrw.core.print_tools import print_date, print_static
+import sfftkrw as sff
 
 __author__ = "Paul K. Korir, PhD"
 __email__ = "pkorir@ebi.ac.uk, paul.korir@gmail.com"
@@ -94,7 +95,7 @@ def simplify_mask(mask, r_ids, r_p_zip, replace=True):
     return simplified_mask, segment_ids
 
 
-class VTKMesh(object):
+class VTKMesh:
     def __init__(self, colour, args, *args_, **kwargs_):
         self._vtk_obj = vtk.vtkPolyData(*args_)
         if len(colour) == 3:
@@ -211,7 +212,7 @@ class VTKMesh(object):
         if args.mask_value is not None:
             mask_value = args.mask_value
         else:
-            mask_values = filter(lambda x: x != 0, set(lattice.flatten().tolist()))
+            mask_values = list(filter(lambda x: x != 0, set(lattice.flatten().tolist())))
             if len(mask_values) == 1:
                 mask_value = mask_values[0]
             else:
@@ -307,7 +308,7 @@ class VTKMesh(object):
         """
         assert resolution > 0
         vtkmesh = cls(colour, args, *args_, **kwargs_)
-        from sfftkrw import SFFEllipsoid, SFFCuboid, SFFCylinder, SFFCone
+        from sfftkrw import SFFEllipsoid, SFFCuboid, SFFCylinder, SFFCone, SFFSubtomogramAverage
         if isinstance(shape, SFFEllipsoid):
             vtk_shape = vtk.vtkSphereSource()
             vtk_shape.SetRadius(shape.x)
@@ -331,6 +332,8 @@ class VTKMesh(object):
             vtk_shape.SetXLength(shape.x)
             vtk_shape.SetYLength(shape.y)
             vtk_shape.SetZLength(shape.z)
+        elif isinstance(shape, SFFSubtomogramAverage):
+            print("nothing to do here...")
         T = transform.data_array
         vtk_shape.SetCenter(float(T[0, 3]), float(T[1, 3]), float(T[2, 3]))
         vtk_shape.Update()
@@ -342,6 +345,13 @@ class VTKMesh(object):
         triangleMeshOutput = triangleMesh.GetOutput()
         vtkmesh.vtk_obj.SetPoints(triangleMeshOutput.GetPoints())
         vtkmesh.vtk_obj.SetPolys(triangleMeshOutput.GetPolys())
+        return vtkmesh
+
+    @classmethod
+    def from_vtk_obj(cls, vtk_obj, colour, args, *args_, **kwargs_):
+        """Initialise a VTKMesh object from a VTKPolyData object"""
+        vtkmesh = cls(colour, args, *args_, **kwargs_)
+        vtkmesh.vtk_obj = vtk_obj
         return vtkmesh
 
     def slice(self):
@@ -356,7 +366,7 @@ class VTKMesh(object):
         transformFilter.SetInputData(self.vtk_obj)
         transformFilter.SetTransform(translation)
         transformFilter.Update()
-        return transformFilter.GetOutput()
+        return VTKMesh.from_vtk_obj(transformFilter.GetOutput(), self.colour, self._vtk_args)
 
     def scale(self, by):
         scale = vtk.vtkTransform()
@@ -365,7 +375,19 @@ class VTKMesh(object):
         transformFilter.SetInputData(self.vtk_obj)
         transformFilter.SetTransform(scale)
         transformFilter.Update()
-        return transformFilter.GetOutput()
+        return VTKMesh.from_vtk_obj(transformFilter.GetOutput(), self.colour, self._vtk_args)
+
+    def rotate(self, by):
+        print(f"by = {by}")
+        rotation_matrix = vtk.vtkMatrix4x4()
+        rotation_matrix.DeepCopy(by)
+        rotation = vtk.vtkTransform()
+        rotation.SetMatrix(rotation_matrix)
+        transformFilter = vtk.vtkTransformFilter()
+        transformFilter.SetInputData(self.vtk_obj)
+        transformFilter.SetTransform(rotation)
+        transformFilter.Update()
+        return VTKMesh.from_vtk_obj(transformFilter.GetOutput(), self.colour, self._vtk_args)
 
     def render(self, renderer):
         """
@@ -418,7 +440,7 @@ class VTKMeshes(object):
         self._colour = colour
         # transforms
         if 'transform_list' in kwargs_:
-            self._transforms = kwargs_['transforms']
+            self._transforms = kwargs_['transform_list']
         if 'lattice' in kwargs_:
             self._lattice = kwargs_['lattice']
         if self.primary_descriptor == "mesh_list":
@@ -427,11 +449,42 @@ class VTKMeshes(object):
                     VTKMesh.from_mesh(mesh, self.colour, self._vtk_args, *args_, **kwargs_)
                 )
         elif self.primary_descriptor == "shape_primitive_list":
-            for shape in self._sff_segment.shapes:
-                transform = self._transforms[shape.transformId]
-                self._vtk_meshes.append(
-                    VTKMesh.from_shape(shape, self.colour, self._vtk_args, transform)
-                )
+            # todo: handle each shape type independently e.g. ellipsoid, subtomogram_average, etc.
+            if self._sff_segment.shape_primitive_list.num_subtomogram_averages:
+                # todo: compute the vector by which to translate the lattice to have its centroid at the origin
+                origin_vector = numpy.array([
+                    [self._lattice.start.value[0] + self._lattice.size.value[0] / 2],
+                    [self._lattice.start.value[1] + self._lattice.size.value[1] / 2],
+                    [self._lattice.start.value[2] + self._lattice.size.value[2] / 2],
+                ])
+                # todo: compute the isosurface of the lattice; this is the reference mesh
+                reference_mesh = VTKMesh.from_volume(self._lattice.data_array, self.colour, self._vtk_args)
+                for sta in self._sff_segment.shape_primitive_list:
+                    if isinstance(sta, sff.SFFSubtomogramAverage):
+                        transform = self._transforms.get_by_id(sta.transform_id)
+                        # todo: compute the rotation matrix; this will be done for each transform in a for loop
+                        rotation_matrix = numpy.zeros((4, 4))
+                        rotation_matrix[:3, :3] = transform.data_array[:3, :3]
+                        rotation_matrix[3, 3] = 1  # homogeneous coordinates
+                        # todo: the final translation vector
+                        translation_vector = transform.data_array[:3, 3] / 4 # fixme: need a param for binning factor
+                        origin_mesh = reference_mesh.translate((-origin_vector).flatten().tolist())
+                        rotated_mesh = origin_mesh.rotate(rotation_matrix.flatten().tolist())
+                        positioned_mesh = rotated_mesh.translate(translation_vector.flatten().tolist())
+                        print(f"positioned_mesh: {positioned_mesh, type(positioned_mesh)}")
+                        bounds = [0.0] * 6
+                        positioned_mesh.vtk_obj.GetCellsBounds(bounds)
+                        print(f"bounds: {bounds}")
+                        self._vtk_meshes.append(positioned_mesh)
+            # todo: add a parallel if handle for other shapes i.e. ellipsoids, cuboids, cones, cylinders.
+            if self._sff_segment.shape_primitive_list.num_ellipsoids:
+                print("Not implemented yet! Please contact the dev team to integrate this functionality.")
+            if self._sff_segment.shape_primitive_list.num_cuboids:
+                print("Not implemented yet! Please contact the dev team to integrate this functionality.")
+            if self._sff_segment.shape_primitive_list.num_cones:
+                print("Not implemented yet! Please contact the dev team to integrate this functionality.")
+            if self._sff_segment.shape_primitive_list.num_cylinders:
+                print("Not implemented yet! Please contact the dev team to integrate this functionality.")
         elif self.primary_descriptor == "three_d_volume":
             self._vtk_meshes.append(
                 VTKMesh.from_volume(self._lattice, self.colour, self._vtk_args)
@@ -723,6 +776,85 @@ class VTKSegmentation(object):
                     )
                 )
             print_date('', incl_date=False)
+        elif self._vtk_args.primary_descriptor == "shape_primitive_list":
+            for segment in self._sff_seg.segment_list:
+                self._segments.append(
+                    VTKSegment(
+                        segment, self._vtk_args,
+                        transform_list=self._sff_seg.transform_list,
+                        lattice=self._sff_seg.lattice_list[0]
+                    )
+                )
+            # todo: compute the isosurface of the lattice
+            # todo: check if there are any subtomogram averages in the shape list
+            # segment = self._sff_seg.segments[0]
+            # image_to_physical_transform = self._sff_seg.transform_list.get_by_id(0)
+            # image_to_physical_transform.data_array = numpy.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0]])
+            # # get the first transform
+            # transform = self._sff_seg.transform_list.get_by_id(1)
+            # transform_without_translation = numpy.zeros((4, 4))
+            # transform_without_translation[:3, :3] = transform.data_array[:3, :3]
+            # transform_without_translation[3, 3] = 1
+            # print(f"image_to_physical_transform: {image_to_physical_transform.data_array}")
+            # colour = segment.colour.value
+            # if segment.shape_primitive_list.num_subtomogram_averages:
+            #     lattice = self._sff_seg.lattices[0]
+            #     print(f"lattice: {lattice}")
+            #     # fixme: if we are in image space ignore voxel sizes; otherwise use them
+            #     vx, vy, vz = numpy.diag(image_to_physical_transform.data_array)
+            #     print(f"voxel sizes: {vx}, {vy}, {vz}")
+            #     print(f"lattice dimensions: {lattice.size.value}")
+            #     print(f"lattice origin: {lattice.start.value}")
+            #     translate_to_origin = numpy.array([
+            #         [vx * (lattice.start.value[0] + lattice.size.value[0] / 2)],
+            #         [vy * (lattice.start.value[1] + lattice.size.value[1] / 2)],
+            #         [vz * (lattice.start.value[2] + lattice.size.value[2] / 2)]
+            #     ])
+            #     print(f"translate_to_origin: {(-translate_to_origin).flatten().tolist()}")
+            #     mesh = VTKMesh.from_volume(lattice.data_array, colour, self._vtk_args)
+            #     mesh_at_origin = mesh.translate((-translate_to_origin).flatten().tolist())
+            #     print(f"mesh_at_origin: {mesh_at_origin.vtk_obj}")
+            #     # rotate about origin
+            #     print(f"augmented_transform: {transform_without_translation.flatten().tolist()}")
+            #     mesh_rotated = mesh_at_origin.rotate(transform_without_translation.flatten().tolist())
+            #     print(f"mesh_rotated: {mesh_rotated.vtk_obj}")
+            #     translate_vector = transform.data_array[:3, 3].flatten().tolist()
+            #     print(f"translate_vector: {translate_vector}")
+            #     mesh_at_position = mesh_rotated.translate(translate_vector)
+            #     bounds = [0.0, ] * 6
+            #     print(f"mesh_at_position: {mesh_at_position.vtk_obj.GetCellsBounds(bounds)}")
+            #     print(f"bounds: {bounds}")
+                # for each subtomogram average, create a transformed mesh representing the
+                # location of the lattice's isosurface
+                # for sta in segment.shape_primitive_list:
+                #     transform = self._sff_seg.transform_list.get_by_id(sta.transform_id)
+                #     contour_level = sta.value
+                #     translate_to_origin = numpy.array([[0, 0, 0]]) # fixme: wrong value for now
+                #     translate_to = transform.data_array[:3, 3]
+                #     rotation = numpy.zeros((4, 4))
+                #     rotation[:3, :3] = transform.data_array[:3, :3]
+                #     print(f"rotation: {rotation}")
+                #     print(f"transform: {transform.data_array}")
+                #     print(f"to: {translate_to}")
+                #     print(f"sta: {sta}")
+                #     print(f"contour_level: {contour_level}")
+                #     self._vtk_args.mask_value = contour_level
+                #     # first, translate the sta to have it center aligned with the origin
+                #     # the dimensions of the origin are specified by the dimensions and location of the lattice (complex)
+                #     # next, perform rotations only (3x3 upper left matrix)
+                #     # finally, translate to the position indicated by the right most vector
+                #     print(sta)
+                #     mesh = VTKMesh.from_volume(lattice.data_array, colour, self._vtk_args)
+                #     print(f"mesh: {mesh.vtk_obj}")
+                #     moved_mesh = mesh.translate(translate_to)
+                #     print(f"moved_mesh: {moved_mesh}")
+                # self._segments.append(
+                #     VTKSegment(
+                #         segment, self._vtk_args,
+                #         transforms=self._sff_seg.transform_list,
+                #         lattice=lattice.data_array
+                #     )
+                # )
         else:
             self._segments = list(map(lambda s: VTKSegment(s, self._vtk_args, transforms=self._sff_seg.transform_list),
                                       self._sff_seg.segment_list))
@@ -860,14 +992,14 @@ class VTKSegmentation(object):
                     t_z = transform[2, 3]
                     mesh3 = VTKMesh(mesh.colour, mesh.vtk_args)
                     # must scale first
-                    mesh3.vtk_obj = mesh.scale((s_x, s_y, s_z))
+                    mesh3.vtk_obj = mesh.scale((s_x, s_y, s_z)).vtk_obj
                     # then translate
-                    mesh2 = mesh3.translate((t_x, t_y, t_z))
+                    mesh2 = mesh3.translate((t_x, t_y, t_z)).vtk_obj
                 elif args.center:
                     # center
                     x, y, z = center_point
                     to = (-x, -y, -z)
-                    mesh2 = mesh.translate(to)
+                    mesh2 = mesh.translate(to).vtk_obj
                 else:  # no transform
                     mesh2 = mesh.vtk_obj
                 # decimate
