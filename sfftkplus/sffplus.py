@@ -409,6 +409,8 @@ def main():
             return sff.handle_convert(args, configs)
         elif args.subcommand == "notes":
             return sff.handle_notes(args, configs)
+        elif args.subcommand == "prep":
+            return sff.handle_prep(args, configs)
 
     except KeyboardInterrupt:
         # handle keyboard interrupt

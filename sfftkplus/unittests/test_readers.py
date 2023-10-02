@@ -19,7 +19,7 @@ __email__ = "pkorir@ebi.ac.uk, paul.korir@gmail.com"
 __date__ = "2017-08-14"
 
 
-class TestReaders_roireader(unittest.TestCase):
+class TestReadersROIReader(unittest.TestCase):
     def test_get_data(self):
         """Test get_data function"""
         roi_fn = os.path.join(TEST_DATA_PATH, 'roi', 'test_emd_1832.roi')

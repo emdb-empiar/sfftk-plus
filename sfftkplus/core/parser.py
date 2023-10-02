@@ -29,6 +29,16 @@ shipped_configs = {
         'help': 'use shipped configs only if config path and user configs fail [default: False]'
     }
 }
+binning_factor = {
+    'args': ['--binning-factor'],
+    'kwargs': {
+        'type': int,
+        'default': 1,
+        'choices': [1, 2, 4, 8],
+        'help': "binning factor for the image data; this is used when working with subtomogram averages which may have "
+                "coordinates in unbinned values; possible values are 1, 2, 4, 8 [default: 1]"
+    }
+}
 center = {
     'args': ['-c', '--center'],
     'kwargs': {
@@ -262,6 +272,7 @@ create_roi_parser.add_argument(*output['args'], **output['kwargs'])
 add_args(create_roi_parser, overwrite)
 add_args(create_roi_parser, format_)
 create_roi_parser.add_argument(*verbose['args'], **verbose['kwargs'])
+add_args(create_roi_parser, binning_factor)
 # mutex parser group
 image_name_root_or_xyz_createroi_parser = create_roi_parser.add_mutually_exclusive_group()
 image_name_root_or_xyz_createroi_parser.add_argument('-I', '--image-name-root',
@@ -375,6 +386,7 @@ parser.view_parser.add_argument('-w', '--wireframe', action='store_true', defaul
 parser.view_parser.add_argument(*primary_descriptor['args'], **primary_descriptor['kwargs'])
 parser.view_parser.add_argument(*transparency['args'], **transparency['kwargs'])
 parser.view_parser.add_argument(*mask_value['args'], **mask_value['kwargs'])
+add_args(parser.view_parser, binning_factor)
 
 # ===============================================================================
 # export
@@ -403,6 +415,7 @@ transform_parser_mutex.add_argument(
     action='store_true',
     help="do not transform (leaves segmentation in image space)"
 )
+add_args(export_parser, binning_factor)
 
 # get the full list of tools from the Parser object
 parser.tool_list += ['all_sfftk_plus', 'formats_sfftk_plus', 'omero', 'readers_sfftk_plus', 'schema_sfftk_plus', 'main_sfftk_plus']

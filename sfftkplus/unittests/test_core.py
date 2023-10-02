@@ -22,7 +22,7 @@ __email__ = 'pkorir@ebi.ac.uk, paul.korir@gmail.com'
 __date__ = '2016-06-10'
 
 
-class TestParser_list(unittest.TestCase):
+class TestParserList(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.roi_fn = os.path.join(TEST_DATA_PATH, 'roi', 'test_emd_1832.roi')
@@ -110,7 +110,7 @@ class TestParser_list(unittest.TestCase):
         self.assertEqual(configs['CONNECT_WITH'], 'REMOTE')
 
 
-class TestParser_roi_create(unittest.TestCase):
+class TestParserROICreate(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.roi_fn = os.path.join(TEST_DATA_PATH, 'roi', 'test_emd_1832.roi')
@@ -133,6 +133,7 @@ class TestParser_roi_create(unittest.TestCase):
         self.assertFalse(args.shipped_configs)
         self.assertEqual(args.quick_pick, 0)
         self.assertFalse(args.reset_ids)
+        self.assertEqual(1, args.binning_factor)
 
     def test_output(self):
         """Test that we can set the output file"""
@@ -240,8 +241,16 @@ class TestParser_roi_create(unittest.TestCase):
         args, _ = parse_args('roi create file.sff -o file.roi --shipped-configs', use_shlex=True)
         self.assertTrue(args.shipped_configs)
 
+    def test_binning_factor(self):
+        """Test binning factor"""
+        binning_factor = random.choice([1, 2, 4, 8])
+        args, _ = parse_args(f'roi create file.sff -o file.roi --binning-factor {binning_factor}', use_shlex=True)
+        self.assertEqual(args.binning_factor, binning_factor)
+        with self.assertRaises(SystemExit):
+            parse_args('roi create file.sff -o file.roi --binning-factor 0', use_shlex=True)
 
-class TestParser_attachroi(unittest.TestCase):
+
+class TestParserROIAttach(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.roi_fn = os.path.join(TEST_DATA_PATH, 'roi', 'test_emd_1832.roi')
@@ -284,7 +293,7 @@ class TestParser_attachroi(unittest.TestCase):
         self.assertEqual(configs['CONNECT_WITH'], 'REMOTE')
 
 
-class TestParser_roi_del(unittest.TestCase):
+class TestParserROIDel(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.roi_fn = os.path.join(TEST_DATA_PATH, 'roi', 'test_emd_1832.roi')
@@ -332,7 +341,7 @@ class TestParser_roi_del(unittest.TestCase):
         self.assertEqual(configs['CONNECT_WITH'], 'REMOTE')
 
 
-class TestParser_view3d(unittest.TestCase):
+class TestParserView3D(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.roi_fn = os.path.join(TEST_DATA_PATH, 'roi', 'test_emd_1832.roi')
@@ -363,6 +372,7 @@ class TestParser_view3d(unittest.TestCase):
         self.assertEqual(args.mask_value, 1)
         self.assertIsNone(args.config_path)
         self.assertFalse(args.shipped_configs)
+        self.assertEqual(1, args.binning_factor)
 
     def test_view_all_contours(self):
         """Test specifying view all contours"""
@@ -386,17 +396,17 @@ class TestParser_view3d(unittest.TestCase):
 
     def test_show_x_contours(self):
         """Test specifying show x contours"""
-        args, _ = parse_args('view --visualise file.sff -X', use_shlex=True)
+        args, _ = parse_args('view --visualise file.sff -x', use_shlex=True)
         self.assertTrue(args.x_contours)
 
     def test_show_y_contours(self):
         """Test specifying show y contours"""
-        args, _ = parse_args('view --visualise file.sff -Y', use_shlex=True)
+        args, _ = parse_args('view --visualise file.sff -y', use_shlex=True)
         self.assertTrue(args.y_contours)
 
     def test_show_z_contours(self):
         """Test specifying show z contours"""
-        args, _ = parse_args('view --visualise file.sff -Z', use_shlex=True)
+        args, _ = parse_args('view --visualise file.sff -z', use_shlex=True)
         self.assertTrue(args.z_contours)
 
     def test_no_orientation_axes(self):
@@ -438,7 +448,7 @@ class TestParser_view3d(unittest.TestCase):
 
     def test_primaryDescriptor(self):
         """Test specifying primary descriptor"""
-        primary_descriptor = random.choice(['contour_list', 'mesh_list', 'three_d_volume', 'shape_primitive_list'])
+        primary_descriptor = random.choice(['mesh_list', 'three_d_volume', 'shape_primitive_list'])
         args, _ = parse_args('view --visualise file.sff -R {}'.format(primary_descriptor), use_shlex=True)
         self.assertEqual(args.primary_descriptor, primary_descriptor)
 
@@ -469,8 +479,16 @@ class TestParser_view3d(unittest.TestCase):
         args, _ = parse_args('view --visualise file.sff --shipped-configs', use_shlex=True)
         self.assertTrue(args.shipped_configs)
 
+    def test_binning_factor(self):
+        """Test that we can set a binning factor"""
+        binning_factor = random.choice([1, 2, 4, 8])
+        args, _ = parse_args(f'view --visualise file.sff --binning-factor {binning_factor}', use_shlex=True)
+        self.assertEqual(args.binning_factor, binning_factor)
+        with self.assertRaises(SystemExit):
+            parse_args(f"view --visualise file.sff --binning-factor 12", use_shlex=True)
 
-class TestParser_export(unittest.TestCase):
+
+class TestParserExport(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.roi_fn = os.path.join(TEST_DATA_PATH, 'roi', 'test_emd_1832.roi')
@@ -486,10 +504,11 @@ class TestParser_export(unittest.TestCase):
         self.assertFalse(args.verbose)
         self.assertIsNone(args.config_path)
         self.assertFalse(args.shipped_configs)
+        self.assertEqual(1, args.binning_factor)
 
     def test_primaryDescriptor(self):
         """Test specifying primary descriptor"""
-        primaryDescriptor = random.choice(['contourList', 'mesh_list', 'three_d_volume', 'shape_primitive_list'])
+        primaryDescriptor = random.choice(['mesh_list', 'three_d_volume', 'shape_primitive_list'])
         args, _ = parse_args('export file.sff -R {}'.format(primaryDescriptor), use_shlex=True)
         self.assertEqual(args.primary_descriptor, primaryDescriptor)
 
@@ -518,3 +537,11 @@ class TestParser_export(unittest.TestCase):
         """Test that we can use shipped configs"""
         args, _ = parse_args('export file.sff --shipped-configs', use_shlex=True)
         self.assertTrue(args.shipped_configs)
+
+    def test_binning_factor(self):
+        """Test that we can set a binning factor"""
+        binning_factor = random.choice([1, 2, 4, 8])
+        args, _ = parse_args(f'export file.sff --binning-factor {binning_factor}', use_shlex=True)
+        self.assertEqual(args.binning_factor, binning_factor)
+        with self.assertRaises(SystemExit):
+            parse_args(f"export file.sff --binning-factor 12", use_shlex=True)

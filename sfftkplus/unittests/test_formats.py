@@ -22,10 +22,10 @@ class TestFormats(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.roi_file = os.path.join(TEST_DATA_PATH, 'roi', 'test_emd_1832.roi')
-        cls.sff_file = os.path.join(TEST_DATA_PATH, 'sff', 'test_emd_1832.sff')
+        cls.sff_file = os.path.join(TEST_DATA_PATH, 'sff', 'test_emd_1832_v0.8.0.dev1.sff')
         cls.config_fn = os.path.join(TEST_DATA_PATH, 'configs', 'sffp.conf')
         cls.roi_segmentation = roi.ROISegmentation(cls.roi_file)
-        cls.sff_segmentation = SFFPSegmentation(cls.sff_file)
+        cls.sff_segmentation = SFFPSegmentation.from_file(cls.sff_file)
 
     def test_roi_read(self):
         """Test that we can read .roi files"""
@@ -37,13 +37,10 @@ class TestFormats(unittest.TestCase):
         args, configs = parse_args(
             'roi create {} -f roi -I emd_1832 '.format(
                 os.path.join(TEST_DATA_PATH, 'sff', 'test_emd_1832_v0.8.0.dev1.sff')), use_shlex=True)
-        print(args)
         vtk_segmentation = self.sff_segmentation.as_vtk(args, configs)
-        print(vtk_segmentation)
         # to get contours we must first slice!
         vtk_segmentation.slice()
         roi_segmentation = vtk_segmentation.as_roi(args, configs)
-        print(roi_segmentation.segments)
         self.assertEqual(len(roi_segmentation.segments), len(self.roi_segmentation.segments))
         self.assertIsInstance(roi_segmentation.segments[0], type(self.roi_segmentation.segments[0]))
 

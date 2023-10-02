@@ -25,7 +25,7 @@ import omero.gateway
 from omero.model import RoiI  # @UnresolvedImport
 from omero.rtypes import rstring
 import omero.sys
-from sfftk.core.print_tools import print_date
+from sfftkrw.core.print_tools import print_date
 from sfftkplus.omero import primitives
 
 
@@ -184,7 +184,7 @@ class ImageView(object):
             u"pY (\U000003bcm)".rjust(10) + \
             u"pZ (\U000003bcm)".rjust(10) + \
             "#ROIs".rjust(6)
-        string += header.encode('utf-8') + "\n"
+        string += header + "\n"
         string += "-" * self.width + "\n"
         for image in self:
             string += "{:<8}{:<40}{:<15}{:<15}{:>6}{:>6}{:>6}{:>10.4}{:>10.4}{:>10.4}{:>6}\n".format(

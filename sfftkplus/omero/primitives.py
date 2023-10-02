@@ -343,7 +343,7 @@ class Poly(Shape):
 		if points is not None:
 			import re
 			m = re.match(r'points\[(?P<points0>[0-9., \-]+)\] points1\[(?P<points1>[0-9., \-]+)\] points2\[(?P<points2>[0-9., \-]+)\] mask\[0,0,0\]', points.getValue())
-			points0 = map(lambda p: tuple(map(float, p.split(','))), m.group('points0').split(', '))
+			points0 = list(map(lambda p: tuple(map(float, p.split(','))), m.group('points0').split(', ')))
 			return points0
 		else:
 			return []

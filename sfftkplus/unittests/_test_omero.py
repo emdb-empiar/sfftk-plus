@@ -449,7 +449,7 @@ class TestHandler_OMEROROI_attachROI(unittest.TestCase):
         Implicitly tests .saveRoi() method
         """
         from ..formats.roi import ROISegmentation
-        args, configs = parse_args('attachroi --config-path {} file.roi'.format(self.config_fn), use_shlex=True)
+        args, configs = parse_args('roi attach --config-path {} file.roi'.format(self.config_fn), use_shlex=True)
         roi_fn = os.path.join(TEST_DATA_PATH, 'roi', 'test_emd_1832.roi')
         roi_seg = ROISegmentation(roi_fn)
         image_ids = get_image_ids(roi_seg, args)
