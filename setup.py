@@ -17,7 +17,7 @@ setup(
     long_description=long_description,
     license="Apache License",
     keywords="EMDB-SFF, SFF, segmentation",
-    install_requires=['sfftk', 'vtk', 'psycopg2-binary', 'omero-py'],
+    install_requires=['sfftk', 'vtk', 'psycopg2-binary'],
     entry_points={
         'console_scripts': [
             'sff = sfftkplus.sffplus:main',
