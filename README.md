@@ -29,7 +29,7 @@ conda install -c bioconda zeroc-ice==3.6 python-omero==5.3.3
 Your installation of `sfftk-plus` will need to have some settings in place before it can work correctly.
 
 ```bash
-sffp config get --all
+sff config get --all
 ```
 
 will list the available configs.
@@ -73,6 +73,8 @@ Install it with `pip install git+https://github.com/emdb-empiar/sfftk-plus`.
 This will also install the base libraries `sfftk-rw` and `sfftk` in addition to dependencies `vtk` and others. `vtk` is the core graphics library used to do geometrical manipulation.
 
 `sfftk-plus` uses commands on the CLI. The main entrypoint is `sff`. This should display something like this:
+
+> :warning: **Warning:** If you don't see all the commands listed below then you will need to uninstall `sfftk` and `sfftk-rw` and reinstall `sfftk-plus`.
 
 ```shell
 usage: sff [-h] [-V] EMDB-SFF Read/Write Tools ...
